@@ -149,5 +149,75 @@ return function(State, Services, GameStateModule)
         end)
     end
 
+    State.GetClosestPlayer = module.getClosestPlayer
+
+    local silentAimHooked = false
+    function module.startSilentAimHook()
+        if silentAimHooked then return end
+        silentAimHooked = true
+
+        task.spawn(function()
+            local ok, err = pcall(function()
+                local HandlerClass = nil
+
+                -- Scan Garbage Collector to find the weapon Handler class
+                if getgc then
+                    for _, v in ipairs(getgc(true)) do
+                        if type(v) == "table" 
+                           and rawget(v, "fireHitscanShot") 
+                           and rawget(v, "equip") 
+                           and rawget(v, "new") then
+                            HandlerClass = v
+                            print("[Quantix] Silent Aim: Found Handler class in garbage collector")
+                            break
+                        end
+                    end
+                end
+
+                if not HandlerClass then
+                    warn("[Quantix] Silent Aim: Handler class not found in memory")
+                    return
+                end
+
+                local originalFireHitscanShot = HandlerClass.__originalFireHitscanShot or HandlerClass.fireHitscanShot
+                HandlerClass.__originalFireHitscanShot = originalFireHitscanShot
+
+                if originalFireHitscanShot then
+                    HandlerClass.fireHitscanShot = function(self, gunModule)
+                        if State.SilentAimEnabled then
+                            local target = module.getClosestPlayer()
+                            if target and target.Part then
+                                local targetPos = target.Part.Position
+                                if State.PredictionEnabled then
+                                    local rootPart = target.Part.Parent:FindFirstChild("HumanoidRootPart") or target.Part.Parent.PrimaryPart or target.Part
+                                    local velocity = rootPart.AssemblyLinearVelocity or rootPart.Velocity or Vector3.new()
+                                    targetPos = targetPos + (velocity * 0.135)
+                                end
+
+                                local activeCam = workspace.CurrentCamera
+                                if activeCam then
+                                    local oldCF = activeCam.CFrame
+                                    activeCam.CFrame = CFrame.lookAt(oldCF.Position, targetPos)
+                                    
+                                    local result = originalFireHitscanShot(self, gunModule)
+                                    
+                                    activeCam.CFrame = oldCF
+                                    return result
+                                end
+                            end
+                        end
+                        return originalFireHitscanShot(self, gunModule)
+                    end
+                    print("[Quantix] Silent Aim: Hooked fireHitscanShot successfully")
+                else
+                    warn("[Quantix] Silent Aim: fireHitscanShot function not found to hook")
+                end
+            end)
+            if not ok then
+                warn("[Quantix] Silent Aim Hook execution failed: " .. tostring(err))
+            end
+        end)
+    end
+
     return module
 end

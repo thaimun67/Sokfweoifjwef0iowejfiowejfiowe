@@ -75,6 +75,7 @@ local Theme = {
 
 -- Global Feature States
 if State.AimbotEnabled == nil then State.AimbotEnabled = false end
+if State.SilentAimEnabled == nil then State.SilentAimEnabled = false end
 if State.VisibleCheck == nil then State.VisibleCheck = true end
 if State.PredictionEnabled == nil then State.PredictionEnabled = false end
 if State.TeamCheck == nil then State.TeamCheck = true end
@@ -148,6 +149,7 @@ RecoilModule.startScanner()
 
 -- Start bullet traces hook
 pcall(function() VisualsModule.startBulletTracesHook() end)
+pcall(function() AimbotModule.startSilentAimHook() end)
 
 -- // ================================== \\ --
 -- //          Start Feature Loops       \\ --
@@ -237,6 +239,7 @@ local MainTab = Window:CreateTab("main")
 
 local LegitGroup = MainTab:CreateGroupbox("legit")
 LegitGroup:CreateToggle({ Name = "aimbot", Default = false, Callback = function(s) State.AimbotEnabled = s end })
+LegitGroup:CreateToggle({ Name = "silent aim", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
 LegitGroup:CreateToggle({ Name = "use mousemoverel", Default = true, Callback = function(s) State.AimbotMethod = s and "Mouse" or "Camera" end })
 LegitGroup:CreateToggle({ Name = "visible check", Default = true, Callback = function(s) State.VisibleCheck = s end })
 LegitGroup:CreateToggle({ Name = "apply prediction", Default = false, Callback = function(s) State.PredictionEnabled = s end })
