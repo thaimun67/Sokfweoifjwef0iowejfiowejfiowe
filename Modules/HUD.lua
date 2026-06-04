@@ -100,6 +100,7 @@ return function(State, Services, Theme)
 
         makeHUDElementDraggable(frame, gui)
 
+        gui.Parent = parent
         State.WatermarkGui = gui
 
         -- Dynamic stat calculator
