@@ -227,12 +227,14 @@ return function(State, Services, GameStateModule)
                 -- Scan GC for table as fallback
                 if getgc then
                     for _, v in ipairs(getgc(true)) do
-                        if type(v) == "table" 
-                           and (rawget(v, "fireHitscanShot") or v.fireHitscanShot)
-                           and (rawget(v, "equip") or v.equip)
-                           and (rawget(v, "new") or v.new) then
-                            HandlerClass = v
-                            break
+                        if type(v) == "table" then
+                            local ok, match = pcall(function()
+                                return rawget(v, "fireHitscanShot") and rawget(v, "equip") and rawget(v, "new")
+                            end)
+                            if ok and match then
+                                HandlerClass = v
+                                break
+                            end
                         end
                     end
                 end
