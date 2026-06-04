@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local Theme = {
     Background = Color3.fromRGB(18, 18, 20),
+    Darker = Color3.fromRGB(12, 12, 14),
     DarkOutline = Color3.fromRGB(35, 35, 40),
     LightOutline = Color3.fromRGB(50, 50, 55),
     AccentStart = Color3.fromRGB(115, 120, 255), 
