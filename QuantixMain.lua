@@ -305,7 +305,10 @@ RageGroup:CreateToggle({ Name = "no recoil", Default = false, Callback = functio
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
 SilentAimGroup:CreateSlider({ Name = "hit chance", Min = 0, Max = 100, Default = 100, Callback = function(v) State.SilentAimHitChance = v end })
-SilentAimGroup:CreateDropdown({ Name = "target part", Default = "Head", Options = {"Head", "Torso", "Random"}, Callback = function(v) State.SilentAimTargetPart = v end })
+SilentAimGroup:CreateSlider({ Name = "target part (1:Head, 2:Torso, 3:Rand)", Min = 1, Max = 3, Default = 1, Callback = function(v)
+            local parts = { "Head", "Torso", "Random" }
+            State.SilentAimTargetPart = parts[math.floor(v + 0.5)] or "Head"
+        end })
 SilentAimGroup:CreateToggle({ Name = "show fov circle", Default = false, Callback = function(s) State.SilentAimFOVEnabled = s end })
 SilentAimGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.SilentAimFOVRadius = v end })
 SilentAimGroup:CreateColorpicker({ Name = "fov color", Default = Color3.fromRGB(255, 100, 100), Callback = function(c) State.SilentAimFOVR, State.SilentAimFOVG, State.SilentAimFOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
