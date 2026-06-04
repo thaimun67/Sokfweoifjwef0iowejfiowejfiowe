@@ -189,38 +189,55 @@ return function(State, Services)
         if hookStarted then return end
         hookStarted = true
 
-        local ReplicatedStorage = game:GetService("ReplicatedStorage")
-        local Remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
-        local ShootEvent = Remotes and Remotes:WaitForChild("ShootEvent", 5)
-        if not ShootEvent then return end
+        local TracerModule = nil
+        pcall(function()
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            TracerModule = require(ReplicatedStorage.Classes.Effects.Tracer)
+        end)
 
-        local function onFire(payload)
-            if type(payload) == "table" and payload.o and payload.e then
-                module.drawTrace(payload.o, payload.e)
+        if not TracerModule and getgc then
+            for _, obj in ipairs(getgc(true)) do
+                if type(obj) == "table" and rawget(obj, "fireBulletTracer") and rawget(obj, "fireSniperTracer") then
+                    TracerModule = obj
+                    break
+                end
             end
         end
 
-        local success = pcall(function()
-            local oldNamecall
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                local method = getnamecallmethod()
-                if self == ShootEvent and (method == "FireServer" or method == "fireServer") then
-                    local args = {...}
-                    local payload = args[1]
-                    onFire(payload)
-                end
-                return oldNamecall(self, ...)
-            end)
-        end)
+        if not TracerModule then
+            warn("[Quantix] Tracer class not found, tracers hook disabled.")
+            return
+        end
 
-        if not success then
-            pcall(function()
-                local oldFire = ShootEvent.FireServer
-                hookfunction(oldFire, function(self, payload, ...)
-                    onFire(payload)
-                    return oldFire(self, payload, ...)
+        local oldFireBulletTracer = TracerModule.fireBulletTracer
+        TracerModule.fireBulletTracer = function(self, p2, p3, p4, p5)
+            if typeof(p2) == "Vector3" and typeof(p3) == "Vector3" then
+                task.spawn(function()
+                    module.drawTrace(p2, p3)
                 end)
-            end)
+            end
+            return oldFireBulletTracer(self, p2, p3, p4, p5)
+        end
+
+        local oldFireSniperTracer = TracerModule.fireSniperTracer
+        TracerModule.fireSniperTracer = function(self, p2, p3, p4, p5)
+            if typeof(p2) == "Vector3" and typeof(p3) == "Vector3" then
+                task.spawn(function()
+                    module.drawTrace(p2, p3)
+                end)
+            end
+            return oldFireSniperTracer(self, p2, p3, p4, p5)
+        end
+
+        local oldFire = TracerModule.fire
+        TracerModule.fire = function(self, p2, p3, p4)
+            local startPos = p2 and p2.Position
+            if typeof(startPos) == "Vector3" and typeof(p3) == "Vector3" then
+                task.spawn(function()
+                    module.drawTrace(startPos, p3)
+                end)
+            end
+            return oldFire(self, p2, p3, p4)
         end
     end
 
