@@ -190,52 +190,73 @@ return function(State, Services)
         hookStarted = true
 
         task.spawn(function()
-            local HandlerPrototype = nil
-            -- Wait for Handler class to load in GC
-            while not HandlerPrototype do
-                if getgc then
-                    for _, obj in ipairs(getgc(true)) do
-                        if type(obj) == "table" and rawget(obj, "fireHitscanShot") and rawget(obj, "reload") and rawget(obj, "shoot") then
-                            HandlerPrototype = obj
-                            break
+            pcall(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Classes = ReplicatedStorage:WaitForChild("Classes", 5)
+                if not Classes then return end
+                local Effects = Classes:WaitForChild("Effects", 5)
+                if not Effects then return end
+                local TracerModule = Effects:WaitForChild("Tracer", 5)
+                if not TracerModule then return end
+
+                local TracerClass = require(TracerModule)
+                if type(TracerClass) ~= "table" then return end
+
+                -- Save the true original functions to prevent double wrapping / recursion when re-injecting
+                local originalFireBulletTracer = TracerClass.__originalFireBulletTracer or TracerClass.fireBulletTracer
+                TracerClass.__originalFireBulletTracer = originalFireBulletTracer
+
+                local originalFireSniperTracer = TracerClass.__originalFireSniperTracer or TracerClass.fireSniperTracer
+                TracerClass.__originalFireSniperTracer = originalFireSniperTracer
+
+                local originalFire = TracerClass.__originalFire or TracerClass.fire
+                TracerClass.__originalFire = originalFire
+
+                -- Hook fireBulletTracer
+                if originalFireBulletTracer then
+                    TracerClass.fireBulletTracer = function(self, startPos, endPos, p4, color)
+                        if State.BulletTracesEnabled then
+                            task.spawn(function()
+                                pcall(function()
+                                    module.drawTrace(startPos, endPos)
+                                end)
+                            end)
                         end
+                        return originalFireBulletTracer(self, startPos, endPos, p4, color)
                     end
                 end
-                task.wait(1)
-            end
 
-            local oldFireHitscanShot = HandlerPrototype.fireHitscanShot
-            HandlerPrototype.fireHitscanShot = function(self, weaponModule)
-                pcall(function()
-                    local camera = workspace.CurrentCamera
-                    if not camera then return end
-
-                    -- Determine gun barrel/muzzle position as start point
-                    local muzzle = self.muzzle
-                    local startPos = muzzle and muzzle.Position or (camera.CFrame.Position + camera.CFrame.RightVector * 0.5 - camera.CFrame.UpVector * 0.3)
-
-                    -- Calculate look destination using camera raycast
-                    local origin = camera.CFrame.Position
-                    local range = weaponModule and weaponModule.range or 1000
-                    local direction = camera.CFrame.LookVector * range
-
-                    local raycastParams = self.raycastParams
-                    if not raycastParams then
-                        raycastParams = RaycastParams.new()
-                        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-                        raycastParams.FilterDescendantsInstances = {game.Players.LocalPlayer.Character, camera}
+                -- Hook fireSniperTracer
+                if originalFireSniperTracer then
+                    TracerClass.fireSniperTracer = function(self, startPos, endPos, p4, color)
+                        if State.BulletTracesEnabled then
+                            task.spawn(function()
+                                pcall(function()
+                                    module.drawTrace(startPos, endPos)
+                                end)
+                            end)
+                        end
+                        return originalFireSniperTracer(self, startPos, endPos, p4, color)
                     end
+                end
 
-                    local raycastResult = workspace:Raycast(origin, direction, raycastParams)
-                    local endPos = raycastResult and raycastResult.Position or (origin + direction)
-
-                    -- Draw custom client-side trace
-                    task.spawn(function()
-                        module.drawTrace(startPos, endPos)
-                    end)
-                end)
-                return oldFireHitscanShot(self, weaponModule)
-            end
+                -- Hook fire (lasers / beams)
+                if originalFire then
+                    TracerClass.fire = function(self, muzzlePart, endPos, p4)
+                        if State.BulletTracesEnabled then
+                            task.spawn(function()
+                                pcall(function()
+                                    local startPos = muzzlePart and muzzlePart.Position
+                                    if startPos then
+                                        module.drawTrace(startPos, endPos)
+                                    end
+                                end)
+                            end)
+                        end
+                        return originalFire(self, muzzlePart, endPos, p4)
+                    end
+                end
+            end)
         end)
     end
 
