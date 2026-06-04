@@ -147,5 +147,82 @@ return function(State, Services)
         end)
     end
 
+    -- Bullet Traces
+    if State.BulletTracesEnabled == nil then State.BulletTracesEnabled = false end
+    if State.BulletTraceThickness == nil then State.BulletTraceThickness = 0.02 end
+    if State.BulletTraceDuration == nil then State.BulletTraceDuration = 1.0 end
+    if State.BulletTraceColorR == nil then State.BulletTraceColorR = 115; State.BulletTraceColorG = 120; State.BulletTraceColorB = 255 end
+
+    local TweenService = Services.TweenService or game:GetService("TweenService")
+
+    function module.drawTrace(pA, pB)
+        if not State.BulletTracesEnabled then return end
+        local distance = (pA - pB).Magnitude
+        if distance < 0.1 then return end
+
+        local traceColor = Color3.fromRGB(State.BulletTraceColorR, State.BulletTraceColorG, State.BulletTraceColorB)
+        local thickness = State.BulletTraceThickness or 0.02
+
+        local part = Instance.new("Part")
+        part.Name = "QuantixBulletTrace"
+        part.Material = Enum.Material.Neon
+        part.Color = traceColor
+        part.Size = Vector3.new(thickness, thickness, distance)
+        part.CFrame = CFrame.lookAt(pA:Lerp(pB, 0.5), pB)
+        part.Anchored = true
+        part.CanCollide = false
+        part.CanTouch = false
+        part.CanQuery = false
+        part.CastShadow = false
+        part.Parent = workspace.CurrentCamera or workspace
+
+        local tweenInfo = TweenInfo.new(State.BulletTraceDuration or 1, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(part, tweenInfo, {Transparency = 1})
+        tween:Play()
+        tween.Completed:Connect(function()
+            part:Destroy()
+        end)
+    end
+
+    local hookStarted = false
+    function module.startBulletTracesHook()
+        if hookStarted then return end
+        hookStarted = true
+
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local Remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
+        local ShootEvent = Remotes and Remotes:WaitForChild("ShootEvent", 5)
+        if not ShootEvent then return end
+
+        local function onFire(payload)
+            if type(payload) == "table" and payload.o and payload.e then
+                module.drawTrace(payload.o, payload.e)
+            end
+        end
+
+        local success = pcall(function()
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+                if self == ShootEvent and (method == "FireServer" or method == "fireServer") then
+                    local args = {...}
+                    local payload = args[1]
+                    onFire(payload)
+                end
+                return oldNamecall(self, ...)
+            end)
+        end)
+
+        if not success then
+            pcall(function()
+                local oldFire = ShootEvent.FireServer
+                hookfunction(oldFire, function(self, payload, ...)
+                    onFire(payload)
+                    return oldFire(self, payload, ...)
+                end)
+            end)
+        end
+    end
+
     return module
 end

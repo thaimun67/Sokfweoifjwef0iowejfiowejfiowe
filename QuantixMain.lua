@@ -100,6 +100,11 @@ if State.ChamsOutlineR == nil then State.ChamsOutlineR = 150; State.ChamsOutline
 if State.Box2DThickness == nil then State.Box2DThickness = 1 end
 if State.Box2DR == nil then State.Box2DR = 115; State.Box2DG = 120; State.Box2DB = 255 end
 
+if State.BulletTracesEnabled == nil then State.BulletTracesEnabled = false end
+if State.BulletTraceThickness == nil then State.BulletTraceThickness = 0.02 end
+if State.BulletTraceDuration == nil then State.BulletTraceDuration = 1.0 end
+if State.BulletTraceColorR == nil then State.BulletTraceColorR = 115; State.BulletTraceColorG = 120; State.BulletTraceColorB = 255 end
+
 if State.FOVThickness == nil then State.FOVThickness = 1 end
 if State.FOVR == nil then State.FOVR = 115; State.FOVG = 120; State.FOVB = 255 end
 
@@ -140,6 +145,9 @@ ESPModule.cleanupOldESP()
 
 -- Start background recoil/camera scanner
 RecoilModule.startScanner()
+
+-- Start bullet traces hook
+pcall(function() VisualsModule.startBulletTracesHook() end)
 
 -- // ================================== \\ --
 -- //          Start Feature Loops       \\ --
@@ -267,6 +275,12 @@ SkyGroup:CreateSlider({ Name = "Skybox Style (1-8)", Min = 1, Max = 8, Default =
 local FOVColorGroup = VisualsTab:CreateGroupbox("fov circle styling")
 FOVColorGroup:CreateColorpicker({ Name = "circle color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.FOVR, State.FOVG, State.FOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 FOVColorGroup:CreateSlider({ Name = "thickness", Min = 1, Max = 5, Default = 1, Callback = function(v) State.FOVThickness = v end })
+
+local TracesGroup = VisualsTab:CreateGroupbox("bullet traces")
+TracesGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.BulletTracesEnabled = s end })
+TracesGroup:CreateSlider({ Name = "thickness (1-10)", Min = 1, Max = 10, Default = 2, Callback = function(v) State.BulletTraceThickness = v / 100 end })
+TracesGroup:CreateSlider({ Name = "duration (1-5s)", Min = 1, Max = 5, Default = 1, Callback = function(v) State.BulletTraceDuration = v end })
+TracesGroup:CreateColorpicker({ Name = "color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.BulletTraceColorR, State.BulletTraceColorG, State.BulletTraceColorB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 
 -- // ====== Tab: Rage ====== \\ --
 local RageTab = Window:CreateTab("rage")
