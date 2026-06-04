@@ -4,23 +4,41 @@ return function(State, Services, GameStateModule)
     local UserInputService = Services.UserInputService
     local module = {}
 
-    function module.getClosestPlayer()
+    function module.getClosestPlayer(isSilentAim)
         local Camera = workspace.CurrentCamera
         if not Camera then return nil end
         local mousePos = UserInputService:GetMouseLocation()
 
         local candidates = {}
 
+        local fovRadius = isSilentAim and State.SilentAimFOVRadius or State.FOVRadius
+        local targetPartName = isSilentAim and State.SilentAimTargetPart or "Head"
+
         local function addCandidate(char)
-            local head = char:FindFirstChild("Head")
-            if not head then return end
-            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+            local targetPart = nil
+            if targetPartName == "Head" then
+                targetPart = char:FindFirstChild("Head")
+            elseif targetPartName == "Torso" then
+                targetPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+            elseif targetPartName == "Random" then
+                local parts = {}
+                local head = char:FindFirstChild("Head")
+                if head then table.insert(parts, head) end
+                local torso = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+                if torso then table.insert(parts, torso) end
+                targetPart = #parts > 0 and parts[math.random(1, #parts)] or nil
+            else
+                targetPart = char:FindFirstChild("Head")
+            end
+
+            if not targetPart then return end
+            local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
             if not onScreen then return end
             local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-            if distance < State.FOVRadius then
+            if distance < fovRadius then
                 table.insert(candidates, {
                     Character = char,
-                    Part = head,
+                    Part = targetPart,
                     Distance = distance
                 })
             end
@@ -184,8 +202,16 @@ return function(State, Services, GameStateModule)
 
                 if originalFireHitscanShot then
                     HandlerClass.fireHitscanShot = function(self, gunModule)
+                        local shouldRedirect = false
                         if State.SilentAimEnabled then
-                            local target = module.getClosestPlayer()
+                            local chance = State.SilentAimHitChance or 100
+                            if chance >= 100 or math.random(1, 100) <= chance then
+                                shouldRedirect = true
+                            end
+                        end
+
+                        if shouldRedirect then
+                            local target = module.getClosestPlayer(true) -- Pass true for Silent Aim
                             if target and target.Part then
                                 local targetPos = target.Part.Position
                                 if State.PredictionEnabled then

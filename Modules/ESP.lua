@@ -95,6 +95,72 @@ return function(State, Services, Theme, GameStateModule)
         end
     end
 
+    -- Silent Aim FOV Circle Wrapper supporting Drawing API and native Gui Fallback
+    if State.SilentAimFOVCircle == nil then State.SilentAimFOVCircle = {} end
+    local silentDrawingCircle
+    local silentFallbackCircle
+
+    if pcall(function() Drawing.new("Circle") end) then
+        silentDrawingCircle = Drawing.new("Circle")
+        silentDrawingCircle.Thickness = 1
+        silentDrawingCircle.NumSides = 64
+        silentDrawingCircle.Radius = 150
+        silentDrawingCircle.Filled = false
+        silentDrawingCircle.Visible = false
+        silentDrawingCircle.Color = Color3.fromRGB(255, 100, 100)
+    else
+        local fovGui = Instance.new("ScreenGui")
+        fovGui.Name = "QuantixSilentAimFOV"
+        fovGui.ResetOnSpawn = false
+        pcall(function() fovGui.Interactable = false end)
+        fovGui.Parent = RunService:IsStudio() and game.Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
+
+        local fovFrame = Instance.new("Frame")
+        fovFrame.BackgroundTransparency = 1
+        fovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+        fovFrame.Size = UDim2.new(0, 300, 0, 300)
+        fovFrame.Visible = false
+        fovFrame.Active = false
+        fovFrame.Selectable = false
+        pcall(function() fovFrame.Interactable = false end)
+        fovFrame.Parent = fovGui
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Thickness = 1
+        stroke.Color = Color3.fromRGB(255, 100, 100)
+        stroke.Parent = fovFrame
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0.5, 0)
+        corner.Parent = fovFrame
+
+        silentFallbackCircle = { gui = fovGui, frame = fovFrame, stroke = stroke }
+    end
+
+    function State.SilentAimFOVCircle:Update(pos, radius, visible, color, thickness)
+        if silentDrawingCircle then
+            silentDrawingCircle.Position = pos
+            silentDrawingCircle.Radius = radius
+            silentDrawingCircle.Visible = visible
+            silentDrawingCircle.Color = color
+            silentDrawingCircle.Thickness = thickness or 1
+        elseif silentFallbackCircle then
+            silentFallbackCircle.frame.Position = UDim2.new(0, pos.X, 0, pos.Y)
+            silentFallbackCircle.frame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
+            silentFallbackCircle.frame.Visible = visible
+            silentFallbackCircle.stroke.Color = color
+            silentFallbackCircle.stroke.Thickness = thickness or 1
+        end
+    end
+
+    function State.SilentAimFOVCircle:Destroy()
+        if silentDrawingCircle then
+            silentDrawingCircle:Remove()
+        elseif silentFallbackCircle then
+            silentFallbackCircle.gui:Destroy()
+        end
+    end
+
     -- Helper to safely clean up visual components and connections of a single entity
     function module.removeESP(entity)
         local data = State.EspElements[entity]

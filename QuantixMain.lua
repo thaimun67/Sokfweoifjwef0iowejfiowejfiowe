@@ -109,6 +109,13 @@ if State.BulletTraceColorR == nil then State.BulletTraceColorR = 115; State.Bull
 if State.FOVThickness == nil then State.FOVThickness = 1 end
 if State.FOVR == nil then State.FOVR = 115; State.FOVG = 120; State.FOVB = 255 end
 
+if State.SilentAimHitChance == nil then State.SilentAimHitChance = 100 end
+if State.SilentAimTargetPart == nil then State.SilentAimTargetPart = "Head" end
+if State.SilentAimFOVRadius == nil then State.SilentAimFOVRadius = 150 end
+if State.SilentAimFOVEnabled == nil then State.SilentAimFOVEnabled = false end
+if State.SilentAimFOVR == nil then State.SilentAimFOVR = 255; State.SilentAimFOVG = 100; State.SilentAimFOVB = 100 end
+if State.SilentAimFOVThickness == nil then State.SilentAimFOVThickness = 1 end
+
 -- // ================================== \\ --
 -- //         Load Feature Modules       \\ --
 -- // ================================== \\ --
@@ -198,6 +205,11 @@ table.insert(State.Connections, RunService.RenderStepped:Connect(function()
     local fovVisible = State.FOVEnabled and State.AimbotEnabled
     local fovC = Color3.fromRGB(State.FOVR, State.FOVG, State.FOVB)
     pcall(function() State.FOVCircle:Update(mousePos, State.FOVRadius, fovVisible, fovC, State.FOVThickness) end)
+
+    local silentFovVisible = State.SilentAimFOVEnabled and State.SilentAimEnabled
+    local silentFovC = Color3.fromRGB(State.SilentAimFOVR or 255, State.SilentAimFOVG or 100, State.SilentAimFOVB or 100)
+    pcall(function() State.SilentAimFOVCircle:Update(mousePos, State.SilentAimFOVRadius or 150, silentFovVisible, silentFovC, State.SilentAimFOVThickness or 1) end)
+
     pcall(ESPModule.updateESPObjects)
     pcall(HUDModule.updateKeybindsListText)
     pcall(HUDModule.updateActiveFeaturesHUD)
@@ -249,6 +261,14 @@ LegitGroup:CreateKeybind({ Name = "aim keybind", Default = Enum.UserInputType.Mo
 local FOVGroup = MainTab:CreateGroupbox("fov settings")
 FOVGroup:CreateToggle({ Name = "enable fov", Default = false, Callback = function(s) State.FOVEnabled = s end })
 FOVGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.FOVRadius = v end })
+
+local SilentAimGroup = MainTab:CreateGroupbox("silent aim settings")
+SilentAimGroup:CreateSlider({ Name = "hit chance", Min = 0, Max = 100, Default = 100, Callback = function(v) State.SilentAimHitChance = v end })
+SilentAimGroup:CreateDropdown({ Name = "target part", Default = "Head", Options = {"Head", "Torso", "Random"}, Callback = function(v) State.SilentAimTargetPart = v end })
+SilentAimGroup:CreateToggle({ Name = "show fov circle", Default = false, Callback = function(s) State.SilentAimFOVEnabled = s end })
+SilentAimGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.SilentAimFOVRadius = v end })
+SilentAimGroup:CreateColorpicker({ Name = "fov color", Default = Color3.fromRGB(255, 100, 100), Callback = function(c) State.SilentAimFOVR, State.SilentAimFOVG, State.SilentAimFOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+SilentAimGroup:CreateSlider({ Name = "fov thickness", Min = 1, Max = 5, Default = 1, Callback = function(v) State.SilentAimFOVThickness = v end })
 
 -- // ====== Tab: Visuals ====== \\ --
 local VisualsTab = Window:CreateTab("visuals")
@@ -331,3 +351,27 @@ for _, tab in pairs(Window.Tabs) do
         tab.Content.Visible = false
     end
 end
+
+-- Unload function
+local function doUnload()
+    -- Disconnect connections
+    for _, conn in ipairs(State.Connections or {}) do
+        pcall(function() conn:Disconnect() end)
+    end
+    State.Connections = {}
+
+    -- Destroy FOV circles
+    pcall(function() State.FOVCircle:Destroy() end)
+    pcall(function() State.SilentAimFOVCircle:Destroy() end)
+
+    -- Cleanup ESP elements
+    pcall(ESPModule.cleanupOldESP)
+
+    -- Destroy window
+    if State.GlobalWindow then
+        pcall(function() State.GlobalWindow:Destroy() end)
+        State.GlobalWindow = nil
+    end
+end
+getgenv().QuantixUnload = doUnload
+getgenv().AbyssUnload = doUnload
