@@ -142,10 +142,10 @@ end
 
 -- Load modules (order matters: GameState first, then modules that depend on it)
 local GameStateModule = LoadModule("GameState")(State, Services)
-local VisualsModule = LoadModule("Visuals_v3")(State, Services)
+local VisualsModule = LoadModule("Visuals_v5")(State, Services)
 local RecoilModule = LoadModule("Recoil")(State, Services)
-local ESPModule = LoadModule("ESP_v3")(State, Services, Theme, GameStateModule)
-local AimbotModule = LoadModule("Aimbot_v4")(State, Services, GameStateModule)
+local ESPModule = LoadModule("ESP_v5")(State, Services, Theme, GameStateModule)
+local AimbotModule = LoadModule("Aimbot_v5")(State, Services, GameStateModule)
 local HUDModule = LoadModule("HUD")(State, Services, Theme)
 
 -- Cleanup old ESP elements from previous runs
