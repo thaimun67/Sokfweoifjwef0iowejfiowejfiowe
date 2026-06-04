@@ -212,29 +212,85 @@ return function(State, Services, GameStateModule)
                     return nil
                 end
 
-                -- Scan GC for function first (most robust on modern executors)
-                if getgc then
+                -- 1. Try direct require first (cleanest and most reliable)
+                local success, res = pcall(function()
+                    return require(game:GetService("ReplicatedStorage"):WaitForChild("Classes"):WaitForChild("Handler"))
+                end)
+                if success and type(res) == "table" then
+                    HandlerClass = res
+                    if res.fireHitscanShot then
+                        targetFunc = res.fireHitscanShot
+                    end
+                    print("[Quantix] Silent Aim: Found Handler class via direct require")
+                end
+
+                -- 2. Scan GC for function first as fallback
+                if (not targetFunc or not HandlerClass) and getgc then
                     for _, v in ipairs(getgc(true)) do
                         if type(v) == "function" then
-                            if getFunctionName(v) == "fireHitscanShot" then
+                            local name = getFunctionName(v)
+                            if name == "fireHitscanShot" then
                                 targetFunc = v
+                                print("[Quantix] Silent Aim: Found function fireHitscanShot directly in GC")
                                 break
                             end
                         end
                     end
                 end
 
-                -- Scan GC for table as fallback
-                if getgc then
+                -- 3. Scan GC for table as fallback
+                if (not targetFunc or not HandlerClass) and getgc then
                     for _, v in ipairs(getgc(true)) do
                         if type(v) == "table" then
-                            local ok, match = pcall(function()
-                                return rawget(v, "fireHitscanShot") and rawget(v, "equip") and rawget(v, "new")
+                            -- Check raw table values safely
+                            local hasRaw = false
+                            pcall(function()
+                                if rawget(v, "fireHitscanShot") or rawget(v, "shoot") then
+                                    hasRaw = true
+                                end
                             end)
-                            if ok and match then
+
+                            -- Check metatable or standard fields safely (using pcall to handle strict tables)
+                            local hasNormal = false
+                            if not hasRaw then
+                                pcall(function()
+                                    if v.fireHitscanShot and v.equip and v.new then
+                                        hasNormal = true
+                                    end
+                                end)
+                            end
+
+                            if hasRaw or hasNormal then
                                 HandlerClass = v
+                                if not targetFunc then
+                                    pcall(function() targetFunc = v.fireHitscanShot end)
+                                end
+                                print("[Quantix] Silent Aim: Found Handler class table in GC")
                                 break
                             end
+                        end
+                    end
+                end
+
+                -- 4. Fallback: scan function upvalues in GC for Handler class reference
+                if not targetFunc and not HandlerClass and getgc and debug.getupvalue then
+                    for _, obj in ipairs(getgc(true)) do
+                        if type(obj) == "function" then
+                            pcall(function()
+                                local i = 1
+                                while true do
+                                    local name, val = debug.getupvalue(obj, i)
+                                    if not name then break end
+                                    if type(val) == "table" and (rawget(val, "fireHitscanShot") or val.fireHitscanShot) then
+                                        HandlerClass = val
+                                        targetFunc = val.fireHitscanShot
+                                        print("[Quantix] Silent Aim: Found Handler class table in upvalue of function", tostring(obj))
+                                        break
+                                    end
+                                    i = i + 1
+                                end
+                            end)
+                            if HandlerClass then break end
                         end
                     end
                 end
