@@ -142,10 +142,10 @@ end
 
 -- Load modules (order matters: GameState first, then modules that depend on it)
 local GameStateModule = LoadModule("GameState")(State, Services)
-local VisualsModule = LoadModule("Visuals")(State, Services)
+local VisualsModule = LoadModule("Visuals_v3")(State, Services)
 local RecoilModule = LoadModule("Recoil")(State, Services)
-local ESPModule = LoadModule("ESP")(State, Services, Theme, GameStateModule)
-local AimbotModule = LoadModule("Aimbot")(State, Services, GameStateModule)
+local ESPModule = LoadModule("ESP_v3")(State, Services, Theme, GameStateModule)
+local AimbotModule = LoadModule("Aimbot_v3")(State, Services, GameStateModule)
 local HUDModule = LoadModule("HUD")(State, Services, Theme)
 
 -- Cleanup old ESP elements from previous runs
@@ -251,7 +251,6 @@ local MainTab = Window:CreateTab("main")
 
 local LegitGroup = MainTab:CreateGroupbox("legit")
 LegitGroup:CreateToggle({ Name = "aimbot", Default = false, Callback = function(s) State.AimbotEnabled = s end })
-LegitGroup:CreateToggle({ Name = "silent aim", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
 LegitGroup:CreateToggle({ Name = "use mousemoverel", Default = true, Callback = function(s) State.AimbotMethod = s and "Mouse" or "Camera" end })
 LegitGroup:CreateToggle({ Name = "visible check", Default = true, Callback = function(s) State.VisibleCheck = s end })
 LegitGroup:CreateToggle({ Name = "apply prediction", Default = false, Callback = function(s) State.PredictionEnabled = s end })
@@ -261,14 +260,6 @@ LegitGroup:CreateKeybind({ Name = "aim keybind", Default = Enum.UserInputType.Mo
 local FOVGroup = MainTab:CreateGroupbox("fov settings")
 FOVGroup:CreateToggle({ Name = "enable fov", Default = false, Callback = function(s) State.FOVEnabled = s end })
 FOVGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.FOVRadius = v end })
-
-local SilentAimGroup = MainTab:CreateGroupbox("silent aim settings")
-SilentAimGroup:CreateSlider({ Name = "hit chance", Min = 0, Max = 100, Default = 100, Callback = function(v) State.SilentAimHitChance = v end })
-SilentAimGroup:CreateDropdown({ Name = "target part", Default = "Head", Options = {"Head", "Torso", "Random"}, Callback = function(v) State.SilentAimTargetPart = v end })
-SilentAimGroup:CreateToggle({ Name = "show fov circle", Default = false, Callback = function(s) State.SilentAimFOVEnabled = s end })
-SilentAimGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.SilentAimFOVRadius = v end })
-SilentAimGroup:CreateColorpicker({ Name = "fov color", Default = Color3.fromRGB(255, 100, 100), Callback = function(c) State.SilentAimFOVR, State.SilentAimFOVG, State.SilentAimFOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
-SilentAimGroup:CreateSlider({ Name = "fov thickness", Min = 1, Max = 5, Default = 1, Callback = function(v) State.SilentAimFOVThickness = v end })
 
 -- // ====== Tab: Visuals ====== \\ --
 local VisualsTab = Window:CreateTab("visuals")
@@ -307,8 +298,18 @@ TracesGroup:CreateColorpicker({ Name = "color", Default = Color3.fromRGB(115, 12
 
 -- // ====== Tab: Rage ====== \\ --
 local RageTab = Window:CreateTab("rage")
+
 local RageGroup = RageTab:CreateGroupbox("exploits")
 RageGroup:CreateToggle({ Name = "no recoil", Default = false, Callback = function(s) State.NoRecoilEnabled = s end })
+
+local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
+SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
+SilentAimGroup:CreateSlider({ Name = "hit chance", Min = 0, Max = 100, Default = 100, Callback = function(v) State.SilentAimHitChance = v end })
+SilentAimGroup:CreateDropdown({ Name = "target part", Default = "Head", Options = {"Head", "Torso", "Random"}, Callback = function(v) State.SilentAimTargetPart = v end })
+SilentAimGroup:CreateToggle({ Name = "show fov circle", Default = false, Callback = function(s) State.SilentAimFOVEnabled = s end })
+SilentAimGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.SilentAimFOVRadius = v end })
+SilentAimGroup:CreateColorpicker({ Name = "fov color", Default = Color3.fromRGB(255, 100, 100), Callback = function(c) State.SilentAimFOVR, State.SilentAimFOVG, State.SilentAimFOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+SilentAimGroup:CreateSlider({ Name = "fov thickness", Min = 1, Max = 5, Default = 1, Callback = function(v) State.SilentAimFOVThickness = v end })
 
 -- // ====== Tab: Settings ====== \\ --
 local MenuTab = Window:CreateTab("settings")
