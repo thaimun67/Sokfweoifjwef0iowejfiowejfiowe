@@ -189,44 +189,54 @@ return function(State, Services)
         if hookStarted then return end
         hookStarted = true
 
-        -- Hook __namecall globally and filter for ShootEvent
-        local success = pcall(function()
-            local oldNamecall
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                local method = getnamecallmethod()
-                if (method == "FireServer" or method == "fireServer") and self.Name == "ShootEvent" then
-                    local args = {...}
-                    local payload = args[1]
-                    if type(payload) == "table" and payload.o and payload.e then
-                        task.spawn(function()
-                            module.drawTrace(payload.o, payload.e)
-                        end)
-                    end
-                end
-                return oldNamecall(self, ...)
-            end)
-        end)
-
-        -- Fallback to global RemoteEvent FireServer hook (highly compatible with lower-tier executors)
-        if not success then
-            pcall(function()
-                local testRemote = Instance.new("RemoteEvent")
-                local oldFireServer
-                oldFireServer = hookfunction(testRemote.FireServer, function(self, ...)
-                    if self.Name == "ShootEvent" then
-                        local args = {...}
-                        local payload = args[1]
-                        if type(payload) == "table" and payload.o and payload.e then
-                            task.spawn(function()
-                                module.drawTrace(payload.o, payload.e)
-                            end)
+        task.spawn(function()
+            local HandlerPrototype = nil
+            -- Wait for Handler class to load in GC
+            while not HandlerPrototype do
+                if getgc then
+                    for _, obj in ipairs(getgc(true)) do
+                        if type(obj) == "table" and rawget(obj, "fireHitscanShot") and rawget(obj, "reload") and rawget(obj, "shoot") then
+                            HandlerPrototype = obj
+                            break
                         end
                     end
-                    return oldFireServer(self, ...)
+                end
+                task.wait(1)
+            end
+
+            local oldFireHitscanShot = HandlerPrototype.fireHitscanShot
+            HandlerPrototype.fireHitscanShot = function(self, weaponModule)
+                pcall(function()
+                    local camera = workspace.CurrentCamera
+                    if not camera then return end
+
+                    -- Determine gun barrel/muzzle position as start point
+                    local muzzle = self.muzzle
+                    local startPos = muzzle and muzzle.Position or (camera.CFrame.Position + camera.CFrame.RightVector * 0.5 - camera.CFrame.UpVector * 0.3)
+
+                    -- Calculate look destination using camera raycast
+                    local origin = camera.CFrame.Position
+                    local range = weaponModule and weaponModule.range or 1000
+                    local direction = camera.CFrame.LookVector * range
+
+                    local raycastParams = self.raycastParams
+                    if not raycastParams then
+                        raycastParams = RaycastParams.new()
+                        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                        raycastParams.FilterDescendantsInstances = {game.Players.LocalPlayer.Character, camera}
+                    end
+
+                    local raycastResult = workspace:Raycast(origin, direction, raycastParams)
+                    local endPos = raycastResult and raycastResult.Position or (origin + direction)
+
+                    -- Draw custom client-side trace
+                    task.spawn(function()
+                        module.drawTrace(startPos, endPos)
+                    end)
                 end)
-                testRemote:Destroy()
-            end)
-        end
+                return oldFireHitscanShot(self, weaponModule)
+            end
+        end)
     end
 
     return module
