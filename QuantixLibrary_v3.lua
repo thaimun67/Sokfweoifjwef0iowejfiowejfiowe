@@ -36,7 +36,9 @@ function Library:CreateWindow(options)
     
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "QuantixUI"
-    ScreenGui.Parent = RunService:IsStudio() and game.Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
+    task.defer(function()
+        ScreenGui.Parent = RunService:IsStudio() and game.Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
+    end)
 
     -- Glow frame (placed behind MainFrame to look like a shadow drop/outer glow)
     local GlowFrame = Instance.new("Frame")
