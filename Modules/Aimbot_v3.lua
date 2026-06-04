@@ -81,7 +81,10 @@ return function(State, Services, GameStateModule)
         local raycastParams = RaycastParams.new()
         raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 
-        local ignoreList = {Camera, LocalPlayer.Character or workspace}
+        local charIgnore = LocalPlayer.Character
+        local ignoreList = {Camera}
+        if charIgnore then table.insert(ignoreList, charIgnore) end
+
         local Effects = workspace:FindFirstChild("Effects")
         if Effects then table.insert(ignoreList, Effects) end
         local Ragdolls = workspace:FindFirstChild("Ragdolls")
@@ -105,21 +108,35 @@ return function(State, Services, GameStateModule)
             end
         end
 
-        raycastParams.FilterDescendantsInstances = ignoreList
-
         local origin = Camera.CFrame.Position
         for _, cand in ipairs(candidates) do
             local headPos = cand.Part.Position
             local direction = headPos - origin
-            local raycastResult = workspace:Raycast(origin, direction, raycastParams)
-
-            if not raycastResult then
-                return cand
-            else
-                local hitInstance = raycastResult.Instance
-                if hitInstance:IsDescendantOf(cand.Character) then
-                    return cand
+            
+            local tempIgnore = {unpack(ignoreList)}
+            local visible = false
+            
+            for i = 1, 10 do
+                raycastParams.FilterDescendantsInstances = tempIgnore
+                local raycastResult = workspace:Raycast(origin, direction, raycastParams)
+                if not raycastResult then
+                    visible = true
+                    break
+                else
+                    local hitInstance = raycastResult.Instance
+                    if hitInstance:IsDescendantOf(cand.Character) then
+                        visible = true
+                        break
+                    elseif hitInstance.Transparency == 1 or not hitInstance.CanCollide then
+                        table.insert(tempIgnore, hitInstance)
+                    else
+                        break
+                    end
                 end
+            end
+
+            if visible then
+                return cand
             end
         end
 
@@ -177,66 +194,124 @@ return function(State, Services, GameStateModule)
         task.spawn(function()
             local ok, err = pcall(function()
                 local HandlerClass = nil
+                local targetFunc = nil
+                local originalFireHitscanShot = nil
 
-                -- Scan Garbage Collector to find the weapon Handler class
+                local function getFunctionName(f)
+                    local okName, name = pcall(function()
+                        return debug.info(f, "n")
+                    end)
+                    if okName and name and name ~= "" then return name end
+                    
+                    local okInfo, info = pcall(function()
+                        return debug.getinfo(f)
+                    end)
+                    if okInfo and info and info.name and info.name ~= "" then
+                        return info.name
+                    end
+                    return nil
+                end
+
+                -- Scan GC for function first (most robust on modern executors)
+                if getgc then
+                    for _, v in ipairs(getgc(true)) do
+                        if type(v) == "function" then
+                            if getFunctionName(v) == "fireHitscanShot" then
+                                targetFunc = v
+                                break
+                            end
+                        end
+                    end
+                end
+
+                -- Scan GC for table as fallback
                 if getgc then
                     for _, v in ipairs(getgc(true)) do
                         if type(v) == "table" 
-                           and rawget(v, "fireHitscanShot") 
-                           and rawget(v, "equip") 
-                           and rawget(v, "new") then
+                           and (rawget(v, "fireHitscanShot") or v.fireHitscanShot)
+                           and (rawget(v, "equip") or v.equip)
+                           and (rawget(v, "new") or v.new) then
                             HandlerClass = v
-                            print("[Quantix] Silent Aim: Found Handler class in garbage collector")
                             break
                         end
                     end
                 end
 
-                if not HandlerClass then
-                    warn("[Quantix] Silent Aim: Handler class not found in memory")
+                if not targetFunc and not HandlerClass then
+                    warn("[Quantix] Silent Aim: target function and Handler class not found in memory")
                     return
                 end
 
-                local originalFireHitscanShot = HandlerClass.__originalFireHitscanShot or HandlerClass.fireHitscanShot
-                HandlerClass.__originalFireHitscanShot = originalFireHitscanShot
-
-                if originalFireHitscanShot then
-                    HandlerClass.fireHitscanShot = function(self, gunModule)
-                        local shouldRedirect = false
-                        if State.SilentAimEnabled then
-                            local chance = State.SilentAimHitChance or 100
-                            if chance >= 100 or math.random(1, 100) <= chance then
-                                shouldRedirect = true
-                            end
+                local function hookedFireHitscanShot(self, gunModule)
+                    local shouldRedirect = false
+                    if State.SilentAimEnabled then
+                        local chance = State.SilentAimHitChance or 100
+                        if chance >= 100 or math.random(1, 100) <= chance then
+                            shouldRedirect = true
                         end
-
-                        if shouldRedirect then
-                            local target = module.getClosestPlayer(true) -- Pass true for Silent Aim
-                            if target and target.Part then
-                                local targetPos = target.Part.Position
-                                if State.PredictionEnabled then
-                                    local rootPart = target.Part.Parent:FindFirstChild("HumanoidRootPart") or target.Part.Parent.PrimaryPart or target.Part
-                                    local velocity = rootPart.AssemblyLinearVelocity or rootPart.Velocity or Vector3.new()
-                                    targetPos = targetPos + (velocity * 0.135)
-                                end
-
-                                local activeCam = workspace.CurrentCamera
-                                if activeCam then
-                                    local oldCF = activeCam.CFrame
-                                    activeCam.CFrame = CFrame.lookAt(oldCF.Position, targetPos)
-                                    
-                                    local result = originalFireHitscanShot(self, gunModule)
-                                    
-                                    activeCam.CFrame = oldCF
-                                    return result
-                                end
-                            end
-                        end
-                        return originalFireHitscanShot(self, gunModule)
                     end
-                    print("[Quantix] Silent Aim: Hooked fireHitscanShot successfully")
-                else
-                    warn("[Quantix] Silent Aim: fireHitscanShot function not found to hook")
+
+                    -- Print debug info when shooting
+                    print("[Quantix] fireHitscanShot called | SilentAimEnabled:", State.SilentAimEnabled, "| shouldRedirect:", shouldRedirect)
+
+                    if shouldRedirect then
+                        local target = module.getClosestPlayer(true) -- Pass true for Silent Aim
+                        if target and target.Part then
+                            print("[Quantix] Silent Aim target found:", target.Character.Name, "| Part:", target.Part.Name)
+                            local targetPos = target.Part.Position
+                            if State.PredictionEnabled then
+                                local rootPart = target.Part.Parent:FindFirstChild("HumanoidRootPart") or target.Part.Parent.PrimaryPart or target.Part
+                                -- Ensure compatibility with all executors
+                                local velocity = rootPart.AssemblyLinearVelocity or rootPart.Velocity or Vector3.new()
+                                targetPos = targetPos + (velocity * 0.135)
+                            end
+
+                            local activeCam = workspace.CurrentCamera
+                            if activeCam then
+                                local oldCF = activeCam.CFrame
+                                activeCam.CFrame = CFrame.lookAt(oldCF.Position, targetPos)
+                                
+                                local result = originalFireHitscanShot(self, gunModule)
+                                
+                                activeCam.CFrame = oldCF
+                                return result
+                            end
+                        else
+                            print("[Quantix] Silent Aim target is nil (none in FOV or visible)")
+                        end
+                    end
+                    return originalFireHitscanShot(self, gunModule)
+                end
+
+                if targetFunc and hookfunction then
+                    print("[Quantix] Silent Aim: Found fireHitscanShot function, detouring via hookfunction")
+                    local success, ret = pcall(function()
+                        return hookfunction(targetFunc, hookedFireHitscanShot)
+                    end)
+                    if success and ret then
+                        originalFireHitscanShot = ret
+                        print("[Quantix] Silent Aim: Detoured fireHitscanShot successfully")
+                    else
+                        warn("[Quantix] Silent Aim: hookfunction detour failed:", tostring(ret))
+                    end
+                end
+
+                -- Fallback to table hook if hookfunction failed or was not available
+                if not originalFireHitscanShot and HandlerClass then
+                    print("[Quantix] Silent Aim: Hooking via class table method replacement")
+                    originalFireHitscanShot = HandlerClass.__originalFireHitscanShot or HandlerClass.fireHitscanShot
+                    HandlerClass.__originalFireHitscanShot = originalFireHitscanShot
+                    
+                    if originalFireHitscanShot then
+                        HandlerClass.fireHitscanShot = hookedFireHitscanShot
+                        print("[Quantix] Silent Aim: Hooked fireHitscanShot table method successfully")
+                    else
+                        warn("[Quantix] Silent Aim: fireHitscanShot function is nil in class table")
+                    end
+                end
+
+                if not originalFireHitscanShot then
+                    warn("[Quantix] Silent Aim Hooking failed completely")
                 end
             end)
             if not ok then
