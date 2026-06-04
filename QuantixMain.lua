@@ -5,10 +5,16 @@ if getgenv then
     if getgenv().AbyssUnload then pcall(getgenv().AbyssUnload) end
 end
 
-local Library = {}
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/thaimun67/Sokfweoifjwef0iowejfiowejfiowe/main/QuantixLibrary.lua"))()
+
+-- Storage for all runtime connections so they can be cleaned up
+local Connections = {}
+Library.Connections = Connections
+
+-- Wait for game to load
+if not game:IsLoaded() then game.Loaded:Wait() end
 local GlobalWindow = nil
 local Aiming = false
-local Connections = {}
 local EspElements = {}
 local PlayerConnections = {}
 local CoreGui = game:GetService("CoreGui")
@@ -1487,46 +1493,7 @@ local function getClosestPlayer()
     return nil
 end
 
---- UI Window Builder Code
-function Library:CreateWindow(options)
-    local titleText = options.Title or "Quantix dev access | fps strafe"
-    
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "QuantixUI"
-    ScreenGui.Parent = RunService:IsStudio() and game.Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
-
-    -- Glow frame (placed behind MainFrame to look like a shadow drop/outer glow)
-    local GlowFrame = Instance.new("Frame")
-    GlowFrame.Name = "Glow"
-    GlowFrame.Size = UDim2.new(0, 562, 0, 462)
-    GlowFrame.Position = UDim2.new(0.5, -281, 0.5, -231)
-    GlowFrame.BackgroundColor3 = Theme.Background
-    GlowFrame.BackgroundTransparency = 0.65
-    GlowFrame.BorderSizePixel = 0
-    GlowFrame.Parent = ScreenGui
-    
-    local GlowCorner = Instance.new("UICorner")
-    GlowCorner.CornerRadius = UDim.new(0, 8)
-    GlowCorner.Parent = GlowFrame
-    
-    local GlowStroke = Instance.new("UIStroke")
-    GlowStroke.Thickness = 6
-    GlowStroke.Color = Theme.AccentStart
-    GlowStroke.Parent = GlowFrame
-    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/thaimun67/Sokfweoifjwef0iowejfiowejfiowe/main/QuantixLibrary.lua"))()
-    Library.ToggleKey = State.MenuToggleKey or Enum.KeyCode.Insert
-    Library.OnToggle = function(visible)
-        if WatermarkGui then pcall(function() WatermarkGui.Interactable = visible end) end
-        if KeybindsGui then pcall(function() KeybindsGui.Interactable = visible end) end
-        if ActiveFeaturesGui then pcall(function() ActiveFeaturesGui.Interactable = visible end) end
-    end
-    
-    local Window = Library:CreateWindow({ Title = "Quantix dev access | fps strafe" })
-    GlobalWindow = Window
-    Library.Connections = Connections
-end
-
-
+--- UI Window Builder logic has been moved to QuantixLibrary.lua
 -- // ================================== \ --
 -- //          Start Feature Loops       \ --
 -- // ================================== \ --
@@ -1654,6 +1621,14 @@ end
 -- // ================================== \ --
 
 local Window = Library:CreateWindow({ Title = "Quantix dev access | fps strafe" })
+GlobalWindow = Window
+
+Library.ToggleKey = Enum.KeyCode.Insert
+Library.OnToggle = function(visible)
+    if WatermarkGui then pcall(function() WatermarkGui.Interactable = visible end) end
+    if KeybindsGui then pcall(function() KeybindsGui.Interactable = visible end) end
+    if ActiveFeaturesGui then pcall(function() ActiveFeaturesGui.Interactable = visible end) end
+end
 
 local MainTab     = Window:CreateTab("main")
 local RageTab     = Window:CreateTab("rage")
