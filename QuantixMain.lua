@@ -12,7 +12,7 @@ if getgenv then
 end
 
 -- Load UI Library
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/thaimun67/Sokfweoifjwef0iowejfiowejfiowe/main/QuantixLibrary.lua?t=" .. tostring(tick())))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/thaimun67/Sokfweoifjwef0iowejfiowejfiowe/main/QuantixLibrary_v2.lua?t=" .. tostring(tick())))()
 
 -- Initialize core state
 if State.Connections == nil then State.Connections = {} end
