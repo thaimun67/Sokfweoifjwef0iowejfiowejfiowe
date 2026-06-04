@@ -215,14 +215,14 @@ if State.AimbotMethod == nil then State.AimbotMethod = "Mouse" -- "Mouse" (mouse
 -- Visual Styling Customization States
 if State.ChamsFillTrans == nil then State.ChamsFillTrans = 0.6 end
 if State.ChamsOutlineTrans == nil then State.ChamsOutlineTrans = 0.2 end
-if State.ChamsFillR == nil then State.ChamsFillR = nil end, State.ChamsFillG, State.ChamsFillB = 115, 120, 255
-if State.ChamsOutlineR == nil then State.ChamsOutlineR = nil end, State.ChamsOutlineG, State.ChamsOutlineB = 150, 150, 255
+if State.ChamsFillR == nil then State.ChamsFillR = 115; State.ChamsFillG = 120; State.ChamsFillB = 255 end
+if State.ChamsOutlineR == nil then State.ChamsOutlineR = 150; State.ChamsOutlineG = 150; State.ChamsOutlineB = 255 end
 
 if State.Box2DThickness == nil then State.Box2DThickness = 1 end
-if State.Box2DR == nil then State.Box2DR = nil end, State.Box2DG, State.Box2DB = 115, 120, 255
+if State.Box2DR == nil then State.Box2DR = 115; State.Box2DG = 120; State.Box2DB = 255 end
 
 if State.FOVThickness == nil then State.FOVThickness = 1 end
-if State.FOVR == nil then State.FOVR = nil end, State.FOVG, State.FOVB = 115, 120, 255
+if State.FOVR == nil then State.FOVR = 115; State.FOVG = 120; State.FOVB = 255 end
 
 -- Custom Game Modules for FPS STRAFE
 local GameState = getGameStateModule()
