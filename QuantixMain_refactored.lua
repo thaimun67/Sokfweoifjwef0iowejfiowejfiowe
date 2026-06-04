@@ -1627,33 +1627,440 @@ end
 local Window = Library:CreateWindow({ Title = "Quantix dev access | fps strafe" })
 State.GlobalWindow = Window
 
-getgenv().QuantixLibrary = Library
-Library.ToggleKey = State.MenuToggleKey or Enum.KeyCode.Insert
+Library.ToggleKey = Enum.KeyCode.Insert
 Library.OnToggle = function(visible)
     if State.WatermarkGui then pcall(function() State.WatermarkGui.Interactable = visible end) end
     if State.KeybindsGui then pcall(function() State.KeybindsGui.Interactable = visible end) end
     if State.ActiveFeaturesGui then pcall(function() State.ActiveFeaturesGui.Interactable = visible end) end
 end
 
-local function LoadTab(name)
-    local url = "https://raw.githubusercontent.com/thaimun67/Sokfweoifjwef0iowejfiowejfiowe/main/Tabs/" .. name .. ".lua?t=" .. tostring(tick())
-    return loadstring(game:HttpGet(url))()
-end
+local MainTab     = Window:CreateTab("main")
+local RageTab     = Window:CreateTab("rage")
+local VisualsTab  = Window:CreateTab("visuals")
+local ChangelogTab = Window:CreateTab("changelog")
+local MenuTab     = Window:CreateTab("menu")
 
-LoadTab("QuantixLegit")(Window, State)
-LoadTab("QuantixVisuals")(Window, State, updateESP, applyFOV, restoreFOV, applySkybox, restoreSkybox, toggleWatermark, toggleKeybindsList, toggleActiveFeaturesHUD)
-LoadTab("QuantixRage")(Window, State)
-LoadTab("QuantixSettings")(Window, State, toggleWatermark, toggleKeybindsList, toggleActiveFeaturesHUD)
-LoadTab("QuantixChangelog")(Window, State)
 
--- Make main tab active by default
-Window.CurrentTab = "main"
-for _, tab in pairs(Window.Tabs) do
-    if tab.Button.Text == "main" then
-        tab.Content.Visible = true
-        tab.Button.TextColor3 = Library.Theme.Text
-        tab.Button.BorderColor3 = Library.Theme.LightOutline
-    else
-        tab.Content.Visible = false
+-- // [MAIN TAB - LEFT SIDE] Legit Aimbot Settings
+local LegitGroup = MainTab:CreateGroupbox("legit")
+
+LegitGroup:CreateToggle({
+    Name = "aimbot",
+    Default = false,
+    Callback = function(state)
+        State.AimbotEnabled = state
     end
+})
+
+LegitGroup:CreateToggle({
+    Name = "use mousemoverel",
+    Default = true,
+    Callback = function(state)
+        State.AimbotMethod = state and "Mouse" or "Camera"
+    end
+})
+
+LegitGroup:CreateToggle({
+    Name = "visible check",
+    Default = true,
+    Callback = function(state)
+        State.VisibleCheck = state
+    end
+})
+
+LegitGroup:CreateToggle({
+    Name = "apply prediction",
+    Default = false,
+    Callback = function(state)
+        State.PredictionEnabled = state
+    end
+})
+
+LegitGroup:CreateSlider({
+    Name = "smoothing [mouse]",
+    Min = 0,
+    Max = 20,
+    Default = 5,
+    Callback = function(value)
+        State.Smoothing = value
+    end
+})
+
+LegitGroup:CreateKeybind({
+    Name = "aim keybind",
+    Default = Enum.UserInputType.MouseButton2,
+    Callback = function(key)
+        State.AimKey = key
+        State.Aiming = false
+    end
+})
+
+-- // [MAIN TAB - LEFT SIDE] FOV Settings
+if State.FOVG == nil then State.FOVG = nil endroup = MainTab:CreateGroupbox("fov settings")
+
+FOVGroup:CreateToggle({
+    Name = "enable fov",
+    Default = false,
+    Callback = function(state)
+        State.FOVEnabled = state
+    end
+})
+
+FOVGroup:CreateSlider({
+    Name = "fov radius",
+    Min = 10,
+    Max = 350,
+    Default = 150,
+    Callback = function(value)
+        State.FOVRadius = value
+    end
+})
+
+-- // [MAIN TAB - RIGHT SIDE] Visual ESP Settings
+local VisualsGroup = MainTab:CreateGroupbox("esp")
+
+VisualsGroup:CreateToggle({
+    Name = "enabled",
+    Default = false,
+    Callback = function(state)
+        State.ESPEnabled = state
+        updateESP()
+    end
+})
+
+VisualsGroup:CreateToggle({
+    Name = "box esp (highlight)",
+    Default = false,
+    Callback = function(state)
+        State.BoxESP = state
+        updateESP()
+    end
+})
+
+VisualsGroup:CreateToggle({
+    Name = "2d box esp (drawing)",
+    Default = false,
+    Callback = function(state)
+        State.Box2DESP = state
+        updateESP()
+    end
+})
+
+VisualsGroup:CreateToggle({
+    Name = "name esp",
+    Default = false,
+    Callback = function(state)
+        State.NameESP = state
+        updateESP()
+    end
+})
+
+VisualsGroup:CreateToggle({
+    Name = "team check",
+    Default = true,
+    Callback = function(state)
+        State.TeamCheck = state
+        updateESP()
+    end
+})
+
+-- // [RAGE TAB] Exploits
+local RageGroup = RageTab:CreateGroupbox("exploits")
+
+RageGroup:CreateToggle({
+    Name = "no recoil",
+    Default = false,
+    Callback = function(state)
+        State.NoRecoilEnabled = state
+    end
+})
+
+-- // [VISUALS TAB]
+if State.FOVG == nil then State.FOVG = nil endroup2 = VisualsTab:CreateGroupbox("camera")
+
+FOVGroup2:CreateToggle({
+    Name = "custom fov",
+    Default = false,
+    Callback = function(state)
+        State.CustomFOVEnabled = state
+        if not state then
+            restoreFOV()
+        else
+            applyFOV()
+        end
+    end
+})
+
+FOVGroup2:CreateSlider({
+    Name = "fov value",
+    Min = 50,
+    Max = 130,
+    Default = 90,
+    Callback = function(value)
+        State.CustomFOVValue = value
+        if State.CustomFOVEnabled then applyFOV() end
+    end
+})
+
+local SkyGroup = VisualsTab:CreateGroupbox("skybox")
+
+SkyGroup:CreateToggle({
+    Name = "custom skybox",
+    Default = false,
+    Callback = function(state)
+        State.CustomSkyboxEnabled = state
+        if state then
+            applySkybox(State.CurrentSkyboxName)
+        else
+            restoreSkybox()
+        end
+    end
+})
+
+local skyboxNames = { "space", "sunset", "night", "neon city", "synthwave", "purple nebula", "blood moon", "daylight" }
+
+SkyGroup:CreateSlider({
+    Name = "Skybox Style (1-8)",
+    Min = 1,
+    Max = 8,
+    Default = 1,
+    Callback = function(value)
+        State.CurrentSkyboxName = skyboxNames[math.floor(value)]
+        if State.CustomSkyboxEnabled then
+            applySkybox(State.CurrentSkyboxName)
+        end
+    end
+})
+
+local HUDGroup = VisualsTab:CreateGroupbox("hud settings")
+
+HUDGroup:CreateToggle({
+    Name = "watermark",
+    Default = false,
+    Callback = function(state)
+        toggleWatermark(state)
+    end
+})
+
+HUDGroup:CreateToggle({
+    Name = "keybinds list",
+    Default = false,
+    Callback = function(state)
+        toggleKeybindsList(state)
+    end
+})
+
+HUDGroup:CreateToggle({
+    Name = "active features list",
+    Default = false,
+    Callback = function(state)
+        toggleActiveFeaturesHUD(state)
+    end
+})
+
+local ChamsStyleGroup = VisualsTab:CreateGroupbox("chams styling")
+
+ChamsStyleGroup:CreateSlider({
+    Name = "fill transparency",
+    Min = 0,
+    Max = 100,
+    Default = 60,
+    Callback = function(value)
+        State.ChamsFillTrans = value / 100
+        updateESP()
+    end
+})
+
+ChamsStyleGroup:CreateSlider({
+    Name = "outline transparency",
+    Min = 0,
+    Max = 100,
+    Default = 20,
+    Callback = function(value)
+        State.ChamsOutlineTrans = value / 100
+        updateESP()
+    end
+})
+
+ChamsStyleGroup:CreateColorpicker({
+    Name = "fill color",
+    Default = Color3.fromRGB(115, 120, 255),
+    Callback = function(color)
+        State.ChamsFillR, State.ChamsFillG, State.ChamsFillB = math.round(color.R * 255), math.round(color.G * 255), math.round(color.B * 255)
+        updateESP()
+    end
+})
+
+ChamsStyleGroup:CreateColorpicker({
+    Name = "outline color",
+    Default = Color3.fromRGB(150, 150, 255),
+    Callback = function(color)
+        State.ChamsOutlineR, State.ChamsOutlineG, State.ChamsOutlineB = math.round(color.R * 255), math.round(color.G * 255), math.round(color.B * 255)
+        updateESP()
+    end
+})
+
+local Box2DStyleGroup = VisualsTab:CreateGroupbox("2d box styling")
+
+Box2DStyleGroup:CreateSlider({
+    Name = "box thickness",
+    Min = 1,
+    Max = 5,
+    Default = 1,
+    Callback = function(value)
+        State.Box2DThickness = value
+        updateESP()
+    end
+})
+
+Box2DStyleGroup:CreateColorpicker({
+    Name = "box color",
+    Default = Color3.fromRGB(115, 120, 255),
+    Callback = function(color)
+        State.Box2DR, State.Box2DG, State.Box2DB = math.round(color.R * 255), math.round(color.G * 255), math.round(color.B * 255)
+        updateESP()
+    end
+})
+
+local FovCircleStyleGroup = VisualsTab:CreateGroupbox("fov circle styling")
+
+FovCircleStyleGroup:CreateSlider({
+    Name = "fov thickness",
+    Min = 1,
+    Max = 5,
+    Default = 1,
+    Callback = function(value)
+        State.FOVThickness = value
+    end
+})
+
+FovCircleStyleGroup:CreateColorpicker({
+    Name = "fov color",
+    Default = Color3.fromRGB(115, 120, 255),
+    Callback = function(color)
+        State.FOVR, State.FOVG, State.FOVB = math.round(color.R * 255), math.round(color.G * 255), math.round(color.B * 255)
+    end
+})
+
+
+-- // [CHANGELOG TAB]
+local LogsGroup = ChangelogTab:CreateGroupbox("latest updates")
+LogsGroup:CreateLabel({ Text = "[+] Added Color Pickers (spectrum dropdowns)" })
+LogsGroup:CreateLabel({ Text = "[+] Added Features tab listing script capabilities" })
+LogsGroup:CreateLabel({ Text = "[+] Added No Recoil (weapon & camera shake)" })
+LogsGroup:CreateLabel({ Text = "[v2] Fixed Team check & visibility check delay" })
+LogsGroup:CreateLabel({ Text = "[+] Added Custom FOV (50-130)" })
+LogsGroup:CreateLabel({ Text = "[+] Added Custom Skybox (8 presets)" })
+LogsGroup:CreateLabel({ Text = "[+] Diverted to FPS STRAFE game" })
+LogsGroup:CreateLabel({ Text = "[+] Added support for players and NPCS/bots" })
+
+
+
+-- // [MENU TAB] Settings & Unload
+local SettingsGroup = MenuTab:CreateGroupbox("menu settings")
+
+SettingsGroup:CreateKeybind({
+    Name = "Toggle Keybind",
+    Default = Enum.KeyCode.Insert,
+    Callback = function(key)
+        State.MenuToggleKey = key
+    end
+})
+
+local function doUnload()
+    -- Cancel the recoil background scan thread
+    if hookThread then
+        pcall(function() task.cancel(hookThread) end)
+        hookThread = nil
+    end
+
+    -- Clear cached instances and disable
+    State.NoRecoilEnabled    = false
+    State.RecoilInstances    = {}
+    State.CamRecoilInstances = {}
+
+
+    -- Restore FOV
+    State.CustomFOVEnabled = false
+    restoreFOV()
+
+    -- Restore skybox
+    if State.CustomSkyboxEnabled then
+        restoreSkybox()
+    end
+    State.CustomSkyboxEnabled = false
+
+    -- Clean up watermark
+    if State.WatermarkGui then
+        pcall(function() State.WatermarkGui:Destroy() end)
+        State.WatermarkGui = nil
+    end
+    if watermarkThread then
+        pcall(function() task.cancel(watermarkThread) end)
+        watermarkThread = nil
+    end
+    WatermarkEnabled = false
+
+    -- Clean up keybinds list
+    if State.KeybindsGui then
+        pcall(function() State.KeybindsGui:Destroy() end)
+        State.KeybindsGui = nil
+        AimKeyLabel = nil
+        MenuKeyLabel = nil
+    end
+
+    -- Clean up active features HUD
+    toggleActiveFeaturesHUD(false)
+
+    -- Unbind all steps (RenderStepped connections are disconnected in the connections loop below)
+
+    -- 1. Stop all global execution loops and events
+    for _, conn in ipairs(State.Connections) do
+        if conn then
+            pcall(function()
+                if type(conn) == "table" and conn.Disconnect then
+                    conn.Disconnect()
+                else
+                    conn:Disconnect()
+                end
+            end)
+        end
+    end
+    State.Connections = {}
+    
+    -- 2. Stop all player tracking connections
+    for player, conns in pairs(State.PlayerConnections) do
+        for _, conn in ipairs(conns) do
+            pcall(function() conn:Disconnect() end)
+        end
+    end
+    State.PlayerConnections = {}
+    
+    -- 3. Clean up ESP drawings and entity connections from lookup table
+    for entity, _ in pairs(State.EspElements) do
+        removeESP(entity)
+    end
+    State.EspElements = {}
+    
+    -- 4. Destroy FOV Circle
+    State.FOVCircle:Destroy()
+    
+    -- 5. Destroy GUI
+    Window.Gui:Destroy()
+    
+    if getgenv then
+        getgenv().QuantixUnload = nil
+        getgenv().AbyssUnload = nil
+    end
+    print("Quantix UI completely unloaded.")
 end
+
+if getgenv then
+    getgenv().QuantixUnload = doUnload
+    getgenv().AbyssUnload = doUnload
+end
+
+SettingsGroup:CreateButton({
+    Name = "Unload",
+    Callback = doUnload
+})
