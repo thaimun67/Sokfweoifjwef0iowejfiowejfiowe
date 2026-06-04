@@ -190,19 +190,52 @@ return function(State, Services)
         hookStarted = true
 
         task.spawn(function()
-            pcall(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local Classes = ReplicatedStorage:WaitForChild("Classes", 5)
-                if not Classes then return end
-                local Effects = Classes:WaitForChild("Effects", 5)
-                if not Effects then return end
-                local TracerModule = Effects:WaitForChild("Tracer", 5)
-                if not TracerModule then return end
+            local ok, err = pcall(function()
+                local TracerClass = nil
 
-                local TracerClass = require(TracerModule)
-                if type(TracerClass) ~= "table" then return end
+                -- Scan Garbage Collector (Most reliable across different executor/client contexts)
+                if getgc then
+                    for _, v in ipairs(getgc(true)) do
+                        if type(v) == "table" 
+                           and rawget(v, "fireBulletTracer") 
+                           and rawget(v, "fireSniperTracer") 
+                           and rawget(v, "createBeamSetup") then
+                            TracerClass = v
+                            print("[Quantix] Bullet Traces: Found Tracer class in garbage collector")
+                            break
+                        end
+                    end
+                end
 
-                -- Save the true original functions to prevent double wrapping / recursion when re-injecting
+                -- Fallback to standard require
+                if not TracerClass then
+                    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                    local Classes = ReplicatedStorage:WaitForChild("Classes", 5)
+                    if not Classes then 
+                        warn("[Quantix] Bullet Traces: Classes folder not found")
+                        return 
+                    end
+                    local Effects = Classes:WaitForChild("Effects", 5)
+                    if not Effects then 
+                        warn("[Quantix] Bullet Traces: Effects folder not found")
+                        return 
+                    end
+                    local TracerModule = Effects:WaitForChild("Tracer", 5)
+                    if not TracerModule then 
+                        warn("[Quantix] Bullet Traces: Tracer module not found")
+                        return 
+                    end
+
+                    TracerClass = require(TracerModule)
+                    print("[Quantix] Bullet Traces: Loaded Tracer class via require")
+                end
+
+                if type(TracerClass) ~= "table" then
+                    warn("[Quantix] Bullet Traces: TracerClass resolve failed")
+                    return
+                end
+
+                -- Save original functions to prevent double wrapping / recursion when re-injecting
                 local originalFireBulletTracer = TracerClass.__originalFireBulletTracer or TracerClass.fireBulletTracer
                 TracerClass.__originalFireBulletTracer = originalFireBulletTracer
 
@@ -224,6 +257,9 @@ return function(State, Services)
                         end
                         return originalFireBulletTracer(self, startPos, endPos, p4, color)
                     end
+                    print("[Quantix] Bullet Traces: Hooked fireBulletTracer")
+                else
+                    warn("[Quantix] Bullet Traces: fireBulletTracer not found to hook")
                 end
 
                 -- Hook fireSniperTracer
@@ -238,6 +274,9 @@ return function(State, Services)
                         end
                         return originalFireSniperTracer(self, startPos, endPos, p4, color)
                     end
+                    print("[Quantix] Bullet Traces: Hooked fireSniperTracer")
+                else
+                    warn("[Quantix] Bullet Traces: fireSniperTracer not found to hook")
                 end
 
                 -- Hook fire (lasers / beams)
@@ -255,8 +294,14 @@ return function(State, Services)
                         end
                         return originalFire(self, muzzlePart, endPos, p4)
                     end
+                    print("[Quantix] Bullet Traces: Hooked fire (beams)")
+                else
+                    warn("[Quantix] Bullet Traces: fire not found to hook")
                 end
             end)
+            if not ok then
+                warn("[Quantix] Hook execution failed: " .. tostring(err))
+            end
         end)
     end
 
