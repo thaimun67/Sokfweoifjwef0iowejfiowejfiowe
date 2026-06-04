@@ -200,17 +200,17 @@ if State.VisibleCheck == nil then State.VisibleCheck = true end
 if State.PredictionEnabled == nil then State.PredictionEnabled = false end
 if State.TeamCheck == nil then State.TeamCheck = true end
 if State.Smoothing == nil then State.Smoothing = 5 end
-if State.AimKey == nil then State.AimKey = Enum.UserInputType.MouseButton2 -- Default aim key (Right click) end
-if State.MenuToggleKey == nil then State.MenuToggleKey = Enum.KeyCode.Insert      -- Default menu toggle key end
+if State.AimKey == nil then State.AimKey = Enum.UserInputType.MouseButton2 end -- Default aim key (Right click)
+if State.MenuToggleKey == nil then State.MenuToggleKey = Enum.KeyCode.Insert end -- Default menu toggle key
 
 if State.ESPEnabled == nil then State.ESPEnabled = false end
-if State.BoxESP == nil then State.BoxESP = false -- Native Highlight end
-if State.Box2DESP == nil then State.Box2DESP = false -- 2D Drawings end
+if State.BoxESP == nil then State.BoxESP = false end -- Native Highlight
+if State.Box2DESP == nil then State.Box2DESP = false end -- 2D Drawings
 if State.NameESP == nil then State.NameESP = false end
 if State.FOVEnabled == nil then State.FOVEnabled = false end
 if State.FOVRadius == nil then State.FOVRadius = 150 end
-if State.AimbotMethod == nil then State.AimbotMethod = "Mouse" -- "Mouse" (mousemoverel) or "Camera" (CFrame) end
--- (InfiniteAmmoEnabled removed)
+if State.AimbotMethod == nil then State.AimbotMethod = "Mouse" end -- "Mouse" (mousemoverel) or "Camera" (CFrame)
+if State.CamControllerInst == nil then State.CamControllerInst = nil end
 
 -- Visual Styling Customization States
 if State.ChamsFillTrans == nil then State.ChamsFillTrans = 0.6 end
@@ -327,7 +327,7 @@ end
 -- // Camera FOV
 if State.CustomFOVEnabled == nil then State.CustomFOVEnabled = false end
 if State.CustomFOVValue == nil then State.CustomFOVValue = 90 end
-if State.CamControllerInst == nil then State.CamControllerInst = nil   -- resolved dynamically in background thread end
+if State.CamControllerInst == nil then State.CamControllerInst = nil end -- resolved dynamically in background thread
 local Lighting           = game:GetService("Lighting")
 
 local function applyFOV()
