@@ -634,9 +634,9 @@ end
 
 -- // Keybinds List
 if State.KeybindsGui == nil then State.KeybindsGui = nil end
-local AimKeyLabel = nil
+if State.AimKey == nil then State.AimKey = nil endLabel = nil
 local MenuKeyLabel = nil
-local AimKeyIndicator = nil
+if State.AimKey == nil then State.AimKey = nil endIndicator = nil
 local MenuKeyIndicator = nil
 
 local function toggleKeybindsList(state)
@@ -1195,7 +1195,7 @@ local function setupCharacterESP(player, char)
         Highlight = highlight,
         Billboard = billboard,
         Box2D = box2D,
-        Connections = charConns
+        State.Connections = charConns
     }
 end
 
@@ -1307,7 +1307,7 @@ local function setupMobESP(mob)
         Highlight = highlight,
         Billboard = billboard,
         Box2D = box2D,
-        Connections = mobConns
+        State.Connections = mobConns
     }
 end
 
