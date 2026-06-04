@@ -1637,14 +1637,38 @@ end
 
 local function LoadTab(name)
     local url = "https://raw.githubusercontent.com/thaimun67/Sokfweoifjwef0iowejfiowejfiowe/main/Tabs/" .. name .. ".lua?t=" .. tostring(tick())
-    return loadstring(game:HttpGet(url))()
+    local ok, result = pcall(function()
+        local src = game:HttpGet(url)
+        local fn, err = loadstring(src)
+        if not fn then
+            warn("[Quantix] Failed to compile " .. name .. ": " .. tostring(err))
+            return nil
+        end
+        return fn()
+    end)
+    if not ok then
+        warn("[Quantix] Failed to load " .. name .. ": " .. tostring(result))
+        return nil
+    end
+    return result
 end
 
-LoadTab("QuantixLegit")(Window, State)
-LoadTab("QuantixVisuals")(Window, State, updateESP, applyFOV, restoreFOV, applySkybox, restoreSkybox, toggleWatermark, toggleKeybindsList, toggleActiveFeaturesHUD)
-LoadTab("QuantixRage")(Window, State)
-LoadTab("QuantixSettings")(Window, State, toggleWatermark, toggleKeybindsList, toggleActiveFeaturesHUD)
-LoadTab("QuantixChangelog")(Window, State)
+local function SafeCall(tabFunc, ...)
+    if tabFunc and type(tabFunc) == "function" then
+        local ok, err = pcall(tabFunc, ...)
+        if not ok then
+            warn("[Quantix] Tab init error: " .. tostring(err))
+        end
+    else
+        warn("[Quantix] Tab returned nil or non-function: " .. tostring(tabFunc))
+    end
+end
+
+SafeCall(LoadTab("QuantixLegit"), Window, State)
+SafeCall(LoadTab("QuantixVisuals"), Window, State, updateESP, applyFOV, restoreFOV, applySkybox, restoreSkybox, toggleWatermark, toggleKeybindsList, toggleActiveFeaturesHUD)
+SafeCall(LoadTab("QuantixRage"), Window, State)
+SafeCall(LoadTab("QuantixSettings"), Window, State, toggleWatermark, toggleKeybindsList, toggleActiveFeaturesHUD)
+SafeCall(LoadTab("QuantixChangelog"), Window, State)
 
 -- Make main tab active by default
 Window.CurrentTab = "main"
