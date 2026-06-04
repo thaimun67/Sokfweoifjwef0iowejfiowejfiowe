@@ -76,6 +76,8 @@ local Theme = {
 -- Global Feature States
 if State.AimbotEnabled == nil then State.AimbotEnabled = false end
 if State.SilentAimEnabled == nil then State.SilentAimEnabled = false end
+if State.InfiniteAmmoEnabled == nil then State.InfiniteAmmoEnabled = false end
+if State.NoSpreadEnabled == nil then State.NoSpreadEnabled = false end
 if State.VisibleCheck == nil then State.VisibleCheck = true end
 if State.PredictionEnabled == nil then State.PredictionEnabled = false end
 if State.TeamCheck == nil then State.TeamCheck = true end
@@ -145,7 +147,7 @@ local GameStateModule = LoadModule("GameState")(State, Services)
 local VisualsModule = LoadModule("Visuals_v6")(State, Services)
 local RecoilModule = LoadModule("Recoil")(State, Services)
 local ESPModule = LoadModule("ESP_v6")(State, Services, Theme, GameStateModule)
-local AimbotModule = LoadModule("Aimbot_v6")(State, Services, GameStateModule)
+local AimbotModule = LoadModule("Aimbot_v9")(State, Services, GameStateModule)
 local HUDModule = LoadModule("HUD")(State, Services, Theme)
 
 -- Cleanup old ESP elements from previous runs
@@ -301,6 +303,8 @@ local RageTab = Window:CreateTab("rage")
 
 local RageGroup = RageTab:CreateGroupbox("exploits")
 RageGroup:CreateToggle({ Name = "no recoil", Default = false, Callback = function(s) State.NoRecoilEnabled = s end })
+RageGroup:CreateToggle({ Name = "no spread", Default = false, Callback = function(s) State.NoSpreadEnabled = s end })
+RageGroup:CreateToggle({ Name = "infinite ammo", Default = false, Callback = function(s) State.InfiniteAmmoEnabled = s end })
 
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
