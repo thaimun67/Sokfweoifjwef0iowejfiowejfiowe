@@ -189,55 +189,43 @@ return function(State, Services)
         if hookStarted then return end
         hookStarted = true
 
-        local TracerModule = nil
-        pcall(function()
-            local ReplicatedStorage = game:GetService("ReplicatedStorage")
-            TracerModule = require(ReplicatedStorage.Classes.Effects.Tracer)
+        -- Hook __namecall globally and filter for ShootEvent
+        local success = pcall(function()
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+                if (method == "FireServer" or method == "fireServer") and self.Name == "ShootEvent" then
+                    local args = {...}
+                    local payload = args[1]
+                    if type(payload) == "table" and payload.o and payload.e then
+                        task.spawn(function()
+                            module.drawTrace(payload.o, payload.e)
+                        end)
+                    end
+                end
+                return oldNamecall(self, ...)
+            end)
         end)
 
-        if not TracerModule and getgc then
-            for _, obj in ipairs(getgc(true)) do
-                if type(obj) == "table" and rawget(obj, "fireBulletTracer") and rawget(obj, "fireSniperTracer") then
-                    TracerModule = obj
-                    break
-                end
-            end
-        end
-
-        if not TracerModule then
-            warn("[Quantix] Tracer class not found, tracers hook disabled.")
-            return
-        end
-
-        local oldFireBulletTracer = TracerModule.fireBulletTracer
-        TracerModule.fireBulletTracer = function(self, p2, p3, p4, p5)
-            if typeof(p2) == "Vector3" and typeof(p3) == "Vector3" then
-                task.spawn(function()
-                    module.drawTrace(p2, p3)
+        -- Fallback to global RemoteEvent FireServer hook (highly compatible with lower-tier executors)
+        if not success then
+            pcall(function()
+                local testRemote = Instance.new("RemoteEvent")
+                local oldFireServer
+                oldFireServer = hookfunction(testRemote.FireServer, function(self, ...)
+                    if self.Name == "ShootEvent" then
+                        local args = {...}
+                        local payload = args[1]
+                        if type(payload) == "table" and payload.o and payload.e then
+                            task.spawn(function()
+                                module.drawTrace(payload.o, payload.e)
+                            end)
+                        end
+                    end
+                    return oldFireServer(self, ...)
                 end)
-            end
-            return oldFireBulletTracer(self, p2, p3, p4, p5)
-        end
-
-        local oldFireSniperTracer = TracerModule.fireSniperTracer
-        TracerModule.fireSniperTracer = function(self, p2, p3, p4, p5)
-            if typeof(p2) == "Vector3" and typeof(p3) == "Vector3" then
-                task.spawn(function()
-                    module.drawTrace(p2, p3)
-                end)
-            end
-            return oldFireSniperTracer(self, p2, p3, p4, p5)
-        end
-
-        local oldFire = TracerModule.fire
-        TracerModule.fire = function(self, p2, p3, p4)
-            local startPos = p2 and p2.Position
-            if typeof(startPos) == "Vector3" and typeof(p3) == "Vector3" then
-                task.spawn(function()
-                    module.drawTrace(startPos, p3)
-                end)
-            end
-            return oldFire(self, p2, p3, p4)
+                testRemote:Destroy()
+            end)
         end
     end
 
