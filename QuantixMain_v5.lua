@@ -149,6 +149,7 @@ local RecoilModule = LoadModule("Recoil")(State, Services)
 local ESPModule = LoadModule("ESP_v6")(State, Services, Theme, GameStateModule)
 local AimbotModule = LoadModule("Aimbot_v9")(State, Services, GameStateModule)
 local HUDModule = LoadModule("HUD")(State, Services, Theme)
+local WeaponChamsModule = LoadModule("WeaponChams")(State, Services)
 
 -- Cleanup old ESP elements from previous runs
 ESPModule.cleanupOldESP()
@@ -215,6 +216,9 @@ table.insert(State.Connections, RunService.RenderStepped:Connect(function()
     pcall(ESPModule.updateESPObjects)
     pcall(HUDModule.updateKeybindsListText)
     pcall(HUDModule.updateActiveFeaturesHUD)
+
+    -- 5. Weapon & Hand Chams
+    pcall(WeaponChamsModule.update)
 end))
 
 -- Setup Player added/removing handlers
@@ -291,6 +295,20 @@ SkyGroup:CreateSlider({ Name = "Skybox Style (1-8)", Min = 1, Max = 8, Default =
 local FOVColorGroup = VisualsTab:CreateGroupbox("fov circle styling")
 FOVColorGroup:CreateColorpicker({ Name = "circle color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.FOVR, State.FOVG, State.FOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 FOVColorGroup:CreateSlider({ Name = "thickness", Min = 1, Max = 5, Default = 1, Callback = function(v) State.FOVThickness = v end })
+
+local WeapChamsGroup = VisualsTab:CreateGroupbox("weapon chams")
+WeapChamsGroup:CreateToggle({ Name = "weapon chams", Default = false, Callback = function(s) State.WeaponChamsEnabled = s end })
+WeapChamsGroup:CreateToggle({ Name = "hand chams", Default = false, Callback = function(s) State.HandChamsEnabled = s end })
+WeapChamsGroup:CreateSlider({ Name = "mode (1:Normal 2:Wire 3:Outline)", Min = 1, Max = 3, Default = 1, Callback = function(v) State.WeaponChamsMode = math.floor(v + 0.5) end })
+WeapChamsGroup:CreateToggle({ Name = "always on top", Default = false, Callback = function(s) State.WeaponChamsDepth = s end })
+WeapChamsGroup:CreateSlider({ Name = "weapon fill trans", Min = 0, Max = 100, Default = 30, Callback = function(v) State.WeaponChamsFillTrans = v / 100 end })
+WeapChamsGroup:CreateSlider({ Name = "weapon outline trans", Min = 0, Max = 100, Default = 0, Callback = function(v) State.WeaponChamsOutlineTrans = v / 100 end })
+WeapChamsGroup:CreateColorpicker({ Name = "weapon fill color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.WeaponChamsFillR, State.WeaponChamsFillG, State.WeaponChamsFillB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+WeapChamsGroup:CreateColorpicker({ Name = "weapon outline color", Default = Color3.fromRGB(180, 180, 255), Callback = function(c) State.WeaponChamsOutlineR, State.WeaponChamsOutlineG, State.WeaponChamsOutlineB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+WeapChamsGroup:CreateSlider({ Name = "hand fill trans", Min = 0, Max = 100, Default = 50, Callback = function(v) State.HandChamsFillTrans = v / 100 end })
+WeapChamsGroup:CreateSlider({ Name = "hand outline trans", Min = 0, Max = 100, Default = 0, Callback = function(v) State.HandChamsOutlineTrans = v / 100 end })
+WeapChamsGroup:CreateColorpicker({ Name = "hand fill color", Default = Color3.fromRGB(200, 130, 255), Callback = function(c) State.HandChamsFillR, State.HandChamsFillG, State.HandChamsFillB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+WeapChamsGroup:CreateColorpicker({ Name = "hand outline color", Default = Color3.fromRGB(220, 180, 255), Callback = function(c) State.HandChamsOutlineR, State.HandChamsOutlineG, State.HandChamsOutlineB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 
 local TracesGroup = VisualsTab:CreateGroupbox("bullet traces")
 TracesGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.BulletTracesEnabled = s end })
@@ -374,6 +392,9 @@ local function doUnload()
 
     -- Cleanup ESP elements
     pcall(ESPModule.cleanupOldESP)
+
+    -- Cleanup weapon/hand chams
+    pcall(WeaponChamsModule.cleanup)
 
     -- Destroy window
     if State.GlobalWindow then
