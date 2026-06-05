@@ -17,22 +17,23 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 local Theme = {
-    Background = Color3.fromRGB(15, 15, 17),
-    Darker = Color3.fromRGB(10, 10, 11),
-    DarkOutline = Color3.fromRGB(30, 30, 35),
-    LightOutline = Color3.fromRGB(45, 45, 50),
-    AccentStart = Color3.fromRGB(115, 120, 255), 
-    AccentEnd = Color3.fromRGB(150, 150, 255),
-    Text = Color3.fromRGB(220, 220, 220),
-    TextDark = Color3.fromRGB(150, 150, 150),
-    ElementBackground = Color3.fromRGB(22, 22, 26),
+    Background = Color3.fromRGB(20, 21, 26),
+    Sidebar = Color3.fromRGB(24, 25, 31),
+    Card = Color3.fromRGB(28, 29, 36),
+    DarkOutline = Color3.fromRGB(36, 37, 44),
+    LightOutline = Color3.fromRGB(48, 50, 60),
+    AccentStart = Color3.fromRGB(219, 29, 222), -- Magenta accent matching image
+    AccentEnd = Color3.fromRGB(150, 50, 255),
+    Text = Color3.fromRGB(240, 240, 245),
+    TextDark = Color3.fromRGB(130, 130, 160),
+    ElementBackground = Color3.fromRGB(45, 47, 56),
     Font = Enum.Font.Code,
     TextSize = 13
 }
 Library.Theme = Theme
 
 local function tween(object, time, propertyTable)
-    local tweenInfo = TweenInfo.new(time or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tweenInfo = TweenInfo.new(time or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local t = TweenService:Create(object, tweenInfo, propertyTable)
     t:Play()
     return t
@@ -93,11 +94,15 @@ function Library:Notify(title, message, duration)
     local ToastFrame = Instance.new("Frame")
     ToastFrame.Size = UDim2.new(0, 240, 0, 50)
     ToastFrame.Position = UDim2.new(1, 260, 1, -60 - (activeNotifications * 60))
-    ToastFrame.BackgroundColor3 = Theme.Background
+    ToastFrame.BackgroundColor3 = Theme.Card
     ToastFrame.BorderSizePixel = 0
     ToastFrame.Parent = ScreenGui
 
-    -- Crisp Double Sharp Border
+    local ToastCorner = Instance.new("UICorner")
+    ToastCorner.CornerRadius = UDim.new(0, 6)
+    ToastCorner.Parent = ToastFrame
+
+    -- Crisp outline
     local OuterBorder = Instance.new("UIStroke")
     OuterBorder.Color = Theme.DarkOutline
     OuterBorder.Thickness = 1
@@ -108,6 +113,10 @@ function Library:Notify(title, message, duration)
     LeftAccent.Position = UDim2.new(0, 0, 0, 0)
     LeftAccent.BorderSizePixel = 0
     LeftAccent.Parent = ToastFrame
+
+    local LeftCorner = Instance.new("UICorner")
+    LeftCorner.CornerRadius = UDim.new(0, 6)
+    LeftCorner.Parent = LeftAccent
 
     local AccentGradient = Instance.new("UIGradient")
     AccentGradient.Color = ColorSequence.new({
@@ -265,12 +274,16 @@ function Library:CreateWindow(options)
     -- Glow outline border behind main menu
     local GlowFrame = Instance.new("Frame")
     GlowFrame.Name = "Glow"
-    GlowFrame.Size = UDim2.new(0, 554, 0, 454)
-    GlowFrame.Position = UDim2.new(0.5, -277, 0.5, -227)
+    GlowFrame.Size = UDim2.new(0, 604, 0, 404)
+    GlowFrame.Position = UDim2.new(0.5, -302, 0.5, -202)
     GlowFrame.BackgroundColor3 = Theme.Background
     GlowFrame.BackgroundTransparency = 0.5
     GlowFrame.BorderSizePixel = 0
     GlowFrame.Parent = ScreenGui
+
+    local GlowCorner = Instance.new("UICorner")
+    GlowCorner.CornerRadius = UDim.new(0, 10)
+    GlowCorner.Parent = GlowFrame
     
     local GlowStroke = Instance.new("UIStroke")
     GlowStroke.Thickness = 2
@@ -287,11 +300,16 @@ function Library:CreateWindow(options)
 
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "Main"
-    MainFrame.Size = UDim2.new(0, 550, 0, 450)
-    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -225)
+    MainFrame.Size = UDim2.new(0, 600, 0, 400)
+    MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
     MainFrame.BackgroundColor3 = Theme.Background
     MainFrame.BorderSizePixel = 0
+    MainFrame.ClipsDescendants = true
     MainFrame.Parent = ScreenGui
+
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = UDim.new(0, 10)
+    MainCorner.Parent = MainFrame
 
     -- Sync glow position and visibility
     local function updateGlowPosition()
@@ -324,64 +342,84 @@ function Library:CreateWindow(options)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end))
 
-    -- Aesthetic Double Outer Border (1px Inner outline + 1px Accent Gradient frame)
-    local OuterBorder = Instance.new("UIStroke")
-    OuterBorder.Color = Color3.new(1, 1, 1)
-    OuterBorder.Thickness = 1
-    OuterBorder.Parent = MainFrame
+    -- Left Sidebar (Evicted style)
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Name = "Sidebar"
+    Sidebar.Size = UDim2.new(0, 160, 1, 0)
+    Sidebar.BackgroundColor3 = Theme.Sidebar
+    Sidebar.BorderSizePixel = 0
+    Sidebar.Parent = MainFrame
 
-    local BorderGradient = Instance.new("UIGradient")
-    BorderGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Theme.AccentStart),
-        ColorSequenceKeypoint.new(1, Theme.AccentEnd)
-    })
-    BorderGradient.Parent = OuterBorder
-    table.insert(self.Gradients, BorderGradient)
+    local SidebarCorner = Instance.new("UICorner")
+    SidebarCorner.CornerRadius = UDim.new(0, 10)
+    SidebarCorner.Parent = Sidebar
 
-    -- Horizontal Accent Line under Title Bar
-    local TopAccent = Instance.new("Frame")
-    TopAccent.Size = UDim2.new(1, 0, 0, 2)
-    TopAccent.Position = UDim2.new(0, 0, 0, 23)
-    TopAccent.BorderSizePixel = 0
-    TopAccent.Parent = MainFrame
-    
-    local TopAccentGradient = Instance.new("UIGradient")
-    TopAccentGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Theme.AccentStart),
-        ColorSequenceKeypoint.new(1, Theme.AccentEnd)
-    })
-    TopAccentGradient.Parent = TopAccent
-    table.insert(self.Gradients, TopAccentGradient)
+    -- Clean cut frame to keep only left corners rounded
+    local SidebarCut = Instance.new("Frame")
+    SidebarCut.Size = UDim2.new(0, 10, 1, 0)
+    SidebarCut.Position = UDim2.new(1, -10, 0, 0)
+    SidebarCut.BackgroundColor3 = Theme.Sidebar
+    SidebarCut.BorderSizePixel = 0
+    SidebarCut.Parent = Sidebar
 
-    -- Title
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, -20, 0, 25)
-    Title.Position = UDim2.new(0, 10, 0, 0)
-    Title.BackgroundTransparency = 1
-    Title.Text = titleText
-    Title.TextColor3 = Theme.Text
-    Title.Font = Theme.Font
-    Title.TextSize = Theme.TextSize
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Parent = MainFrame
+    -- Logo
+    local LogoLabel = Instance.new("TextLabel")
+    LogoLabel.Size = UDim2.new(1, 0, 0, 40)
+    LogoLabel.Position = UDim2.new(0, 0, 0, 15)
+    LogoLabel.BackgroundTransparency = 1
+    LogoLabel.Text = "EVICTED"
+    LogoLabel.TextColor3 = Theme.AccentStart
+    LogoLabel.Font = Enum.Font.GothamBold
+    LogoLabel.TextSize = 18
+    LogoLabel.TextXAlignment = Enum.TextXAlignment.Center
+    LogoLabel.Parent = Sidebar
+    table.insert(self.ThemeElements, LogoLabel)
 
-    -- Tab Bar
+    -- Tab list Container
     local TabContainer = Instance.new("Frame")
-    TabContainer.Size = UDim2.new(1, -20, 0, 20)
-    TabContainer.Position = UDim2.new(0, 10, 0, 25)
+    TabContainer.Size = UDim2.new(1, -20, 1, -80)
+    TabContainer.Position = UDim2.new(0, 10, 0, 65)
     TabContainer.BackgroundTransparency = 1
-    TabContainer.Parent = MainFrame
+    TabContainer.Parent = Sidebar
 
     local TabListLayout = Instance.new("UIListLayout")
-    TabListLayout.FillDirection = Enum.FillDirection.Horizontal
+    TabListLayout.Padding = UDim.new(0, 4)
+    TabListLayout.FillDirection = Enum.FillDirection.Vertical
     TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     TabListLayout.Parent = TabContainer
 
+    -- Main Panel
+    local MainPanel = Instance.new("Frame")
+    MainPanel.Name = "MainPanel"
+    MainPanel.Size = UDim2.new(1, -160, 1, 0)
+    MainPanel.Position = UDim2.new(0, 160, 0, 0)
+    MainPanel.BackgroundColor3 = Theme.Background
+    MainPanel.BorderSizePixel = 0
+    MainPanel.Parent = MainFrame
+
+    -- Top Header Active Tab Info
+    local HeaderFrame = Instance.new("Frame")
+    HeaderFrame.Name = "Header"
+    HeaderFrame.Size = UDim2.new(1, -30, 0, 40)
+    HeaderFrame.Position = UDim2.new(0, 15, 0, 5)
+    HeaderFrame.BackgroundTransparency = 1
+    HeaderFrame.Parent = MainPanel
+
+    local HeaderTitle = Instance.new("TextLabel")
+    HeaderTitle.Size = UDim2.new(1, 0, 1, 0)
+    HeaderTitle.BackgroundTransparency = 1
+    HeaderTitle.Text = "Main"
+    HeaderTitle.TextColor3 = Theme.Text
+    HeaderTitle.Font = Enum.Font.GothamBold
+    HeaderTitle.TextSize = 14
+    HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+    HeaderTitle.Parent = HeaderFrame
+
     local ContentContainer = Instance.new("Frame")
-    ContentContainer.Size = UDim2.new(1, -20, 1, -55)
-    ContentContainer.Position = UDim2.new(0, 10, 0, 50)
+    ContentContainer.Size = UDim2.new(1, -30, 1, -60)
+    ContentContainer.Position = UDim2.new(0, 15, 0, 45)
     ContentContainer.BackgroundTransparency = 1
-    ContentContainer.Parent = MainFrame
+    ContentContainer.Parent = MainPanel
 
     local Window = { Tabs = {}, CurrentTab = nil, Gui = ScreenGui, Main = MainFrame, ToggleKey = Enum.KeyCode.Insert }
     self.Window = Window
@@ -395,7 +433,7 @@ function Library:CreateWindow(options)
             MainFrame.Size = UDim2.new(0, 0, 0, 0)
             MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
             MainFrame.Visible = true
-            local tMain = tween(MainFrame, 0.25, { Size = UDim2.new(0, 550, 0, 450), Position = UDim2.new(0.5, -275, 0.5, -225) })
+            local tMain = tween(MainFrame, 0.25, { Size = UDim2.new(0, 600, 0, 400), Position = UDim2.new(0.5, -300, 0.5, -200) })
             tMain.Completed:Wait()
         else
             local tMain = tween(MainFrame, 0.25, { Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0) })
@@ -415,16 +453,19 @@ function Library:CreateWindow(options)
 
     function Window:CreateTab(tabName)
         local TabButton = Instance.new("TextButton")
-        TabButton.BackgroundColor3 = Theme.Background
-        TabButton.BorderColor3 = Theme.DarkOutline
-        TabButton.Text = tabName
+        TabButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        TabButton.BackgroundTransparency = 1
+        TabButton.Size = UDim2.new(1, 0, 0, 26)
+        TabButton.Text = "  " .. tabName
         TabButton.TextColor3 = Theme.TextDark
         TabButton.Font = Theme.Font
         TabButton.TextSize = Theme.TextSize
+        TabButton.TextXAlignment = Enum.TextXAlignment.Left
         TabButton.Parent = TabContainer
-        
-        local textBounds = game:GetService("TextService"):GetTextSize(tabName, Theme.TextSize, Theme.Font, Vector2.new(999, 20))
-        TabButton.Size = UDim2.new(0, textBounds.X + 20, 1, 0)
+
+        local TabBtnCorner = Instance.new("UICorner")
+        TabBtnCorner.CornerRadius = UDim.new(0, 5)
+        TabBtnCorner.Parent = TabButton
 
         local TabContent = Instance.new("ScrollingFrame")
         TabContent.Size = UDim2.new(1, 0, 1, 0)
@@ -436,12 +477,12 @@ function Library:CreateWindow(options)
         table.insert(Library.ThemeElements, TabContent)
 
         local ContentLayout = Instance.new("UIListLayout")
-        ContentLayout.Padding = UDim.new(0, 8)
+        ContentLayout.Padding = UDim.new(0, 12)
         ContentLayout.FillDirection = Enum.FillDirection.Horizontal
         ContentLayout.Parent = TabContent
 
         local LeftSide = Instance.new("Frame")
-        LeftSide.Size = UDim2.new(0.5, -4, 1, 0)
+        LeftSide.Size = UDim2.new(0.5, -6, 1, 0)
         LeftSide.BackgroundTransparency = 1
         LeftSide.Parent = TabContent
         local LeftLayout = Instance.new("UIListLayout")
@@ -449,12 +490,23 @@ function Library:CreateWindow(options)
         LeftLayout.Parent = LeftSide
 
         local RightSide = Instance.new("Frame")
-        RightSide.Size = UDim2.new(0.5, -4, 1, 0)
+        RightSide.Size = UDim2.new(0.5, -6, 1, 0)
         RightSide.BackgroundTransparency = 1
         RightSide.Parent = TabContent
         local RightLayout = Instance.new("UIListLayout")
         RightLayout.Padding = UDim.new(0, 10)
         RightLayout.Parent = RightSide
+
+        local function updateTabButtonVisuals(active)
+            if active then
+                TabButton.TextColor3 = Theme.Text
+                TabButton.BackgroundTransparency = 0.85
+                TabButton.BackgroundColor3 = Theme.AccentStart
+            else
+                TabButton.TextColor3 = Theme.TextDark
+                TabButton.BackgroundTransparency = 1
+            end
+        end
 
         TabButton.MouseEnter:Connect(function()
             if Window.CurrentTab ~= tabName then
@@ -470,21 +522,22 @@ function Library:CreateWindow(options)
         TabButton.MouseButton1Click:Connect(function()
             for _, tab in pairs(Window.Tabs) do
                 tab.Content.Visible = false
-                tween(tab.Button, 0.15, { TextColor3 = Theme.TextDark, BorderColor3 = Theme.DarkOutline })
+                tab.UpdateVisuals(false)
             end
             TabContent.Visible = true
             Window.CurrentTab = tabName
-            tween(TabButton, 0.15, { TextColor3 = Theme.Text, BorderColor3 = Theme.LightOutline })
+            HeaderTitle.Text = tabName:sub(1, 1):upper() .. tabName:sub(2)
+            updateTabButtonVisuals(true)
         end)
 
         if not Window.CurrentTab then
             Window.CurrentTab = tabName
             TabContent.Visible = true
-            TabButton.TextColor3 = Theme.Text
-            TabButton.BorderColor3 = Theme.LightOutline
+            HeaderTitle.Text = tabName:sub(1, 1):upper() .. tabName:sub(2)
+            updateTabButtonVisuals(true)
         end
 
-        table.insert(Window.Tabs, { Button = TabButton, Content = TabContent })
+        table.insert(Window.Tabs, { Button = TabButton, Content = TabContent, UpdateVisuals = updateTabButtonVisuals })
         
         local Tab = { SideToggle = true }
         
@@ -494,46 +547,37 @@ function Library:CreateWindow(options)
 
             local Groupbox = Instance.new("Frame")
             Groupbox.Size = UDim2.new(1, 0, 0, 20)
-            Groupbox.BackgroundColor3 = Theme.Background
-            Groupbox.BorderColor3 = Theme.DarkOutline
+            Groupbox.BackgroundColor3 = Theme.Card
+            Groupbox.BorderSizePixel = 0
             Groupbox.Parent = targetSide
 
-            -- 1px Inline accent highlights for header
-            local GroupBorder = Instance.new("UIStroke")
-            GroupBorder.Thickness = 1
-            GroupBorder.Color = Theme.DarkOutline
-            GroupBorder.Parent = Groupbox
+            local GroupCorner = Instance.new("UICorner")
+            GroupCorner.CornerRadius = UDim.new(0, 6)
+            GroupCorner.Parent = Groupbox
 
             local GroupTitle = Instance.new("TextLabel")
-            GroupTitle.Size = UDim2.new(1, -10, 0, 20)
-            GroupTitle.Position = UDim2.new(0, 5, 0, 0)
+            GroupTitle.Size = UDim2.new(1, -16, 0, 24)
+            GroupTitle.Position = UDim2.new(0, 8, 0, 2)
             GroupTitle.BackgroundTransparency = 1
             GroupTitle.Text = name
             GroupTitle.TextColor3 = Theme.Text
-            GroupTitle.Font = Theme.Font
-            GroupTitle.TextSize = Theme.TextSize
+            GroupTitle.Font = Enum.Font.GothamBold
+            GroupTitle.TextSize = 11
             GroupTitle.TextXAlignment = Enum.TextXAlignment.Left
             GroupTitle.Parent = Groupbox
 
-            local GroupLine = Instance.new("Frame")
-            GroupLine.Size = UDim2.new(1, -10, 0, 1)
-            GroupLine.Position = UDim2.new(0, 5, 0, 20)
-            GroupLine.BackgroundColor3 = Theme.DarkOutline
-            GroupLine.BorderSizePixel = 0
-            GroupLine.Parent = Groupbox
-
             local GroupContainer = Instance.new("Frame")
-            GroupContainer.Size = UDim2.new(1, -10, 1, -25)
-            GroupContainer.Position = UDim2.new(0, 5, 0, 25)
+            GroupContainer.Size = UDim2.new(1, -16, 1, -30)
+            GroupContainer.Position = UDim2.new(0, 8, 0, 26)
             GroupContainer.BackgroundTransparency = 1
             GroupContainer.Parent = Groupbox
 
             local GroupLayout = Instance.new("UIListLayout")
-            GroupLayout.Padding = UDim.new(0, 5)
+            GroupLayout.Padding = UDim.new(0, 8)
             GroupLayout.Parent = GroupContainer
 
             GroupLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-                Groupbox.Size = UDim2.new(1, 0, 0, GroupLayout.AbsoluteContentSize.Y + 30)
+                Groupbox.Size = UDim2.new(1, 0, 0, GroupLayout.AbsoluteContentSize.Y + 34)
             end)
 
             local Group = {}
@@ -545,8 +589,7 @@ function Library:CreateWindow(options)
                 LabelFrame.Parent = GroupContainer
 
                 local Label = Instance.new("TextLabel")
-                Label.Size = UDim2.new(1, -4, 1, 0)
-                Label.Position = UDim2.new(0, 2, 0, 0)
+                Label.Size = UDim2.new(1, 0, 1, 0)
                 Label.BackgroundTransparency = 1
                 Label.Text = options.Text
                 Label.TextColor3 = Theme.TextDark
@@ -563,13 +606,13 @@ function Library:CreateWindow(options)
 
             function Group:CreateTextBox(options)
                 local BoxFrame = Instance.new("Frame")
-                BoxFrame.Size = UDim2.new(1, 0, 0, 32)
+                BoxFrame.Size = UDim2.new(1, 0, 0, 36)
                 BoxFrame.BackgroundTransparency = 1
                 BoxFrame.Parent = GroupContainer
 
                 local Label = Instance.new("TextLabel")
                 Label.Size = UDim2.new(1, 0, 0, 15)
-                Label.Position = UDim2.new(0, 2, 0, 0)
+                Label.Position = UDim2.new(0, 0, 0, 0)
                 Label.BackgroundTransparency = 1
                 Label.Text = options.Name
                 Label.TextColor3 = Theme.TextDark
@@ -579,10 +622,10 @@ function Library:CreateWindow(options)
                 Label.Parent = BoxFrame
 
                 local BoxInput = Instance.new("TextBox")
-                BoxInput.Size = UDim2.new(1, -4, 0, 16)
-                BoxInput.Position = UDim2.new(0, 2, 0, 15)
-                BoxInput.BackgroundColor3 = Theme.ElementBackground
-                BoxInput.BorderColor3 = Theme.LightOutline
+                BoxInput.Size = UDim2.new(1, 0, 0, 18)
+                BoxInput.Position = UDim2.new(0, 0, 0, 18)
+                BoxInput.BackgroundColor3 = Theme.Sidebar
+                BoxInput.BorderSizePixel = 0
                 BoxInput.Text = options.Default or ""
                 BoxInput.PlaceholderText = options.Placeholder or ""
                 BoxInput.TextColor3 = Theme.Text
@@ -593,10 +636,13 @@ function Library:CreateWindow(options)
                 BoxInput.ClearTextOnFocus = false
                 BoxInput.Parent = BoxFrame
 
-                local Stroke = Instance.new("UIStroke")
-                Stroke.Thickness = 1
-                Stroke.Color = Theme.DarkOutline
-                Stroke.Parent = BoxInput
+                local BoxCorner = Instance.new("UICorner")
+                BoxCorner.CornerRadius = UDim.new(0, 4)
+                BoxCorner.Parent = BoxInput
+
+                local Padding = Instance.new("UIPadding")
+                Padding.PaddingLeft = UDim.new(0, 6)
+                Padding.Parent = BoxInput
 
                 BoxInput.FocusLost:Connect(function()
                     if options.Callback then options.Callback(BoxInput.Text) end
@@ -614,31 +660,29 @@ function Library:CreateWindow(options)
 
             function Group:CreateButton(options)
                 local ButtonFrame = Instance.new("Frame")
-                ButtonFrame.Size = UDim2.new(1, 0, 0, 20)
+                ButtonFrame.Size = UDim2.new(1, 0, 0, 22)
                 ButtonFrame.BackgroundTransparency = 1
                 ButtonFrame.Parent = GroupContainer
 
                 local Button = Instance.new("TextButton")
-                Button.Size = UDim2.new(1, -4, 1, 0)
-                Button.Position = UDim2.new(0, 2, 0, 0)
-                Button.BackgroundColor3 = Theme.ElementBackground
-                Button.BorderColor3 = Theme.LightOutline
+                Button.Size = UDim2.new(1, 0, 1, 0)
+                Button.BackgroundColor3 = Theme.Sidebar
+                Button.BorderSizePixel = 0
                 Button.Text = options.Name
                 Button.TextColor3 = Theme.Text
                 Button.Font = Theme.Font
                 Button.TextSize = Theme.TextSize
                 Button.Parent = ButtonFrame
 
-                local Stroke = Instance.new("UIStroke")
-                Stroke.Thickness = 1
-                Stroke.Color = Theme.DarkOutline
-                Stroke.Parent = Button
+                local BtnCorner = Instance.new("UICorner")
+                BtnCorner.CornerRadius = UDim.new(0, 4)
+                BtnCorner.Parent = Button
 
                 Button.MouseEnter:Connect(function()
-                    tween(Button, 0.15, { BackgroundColor3 = Theme.DarkOutline, TextColor3 = Theme.AccentEnd })
+                    tween(Button, 0.15, { BackgroundColor3 = Theme.LightOutline, TextColor3 = Theme.AccentEnd })
                 end)
                 Button.MouseLeave:Connect(function()
-                    tween(Button, 0.15, { BackgroundColor3 = Theme.ElementBackground, TextColor3 = Theme.Text })
+                    tween(Button, 0.15, { BackgroundColor3 = Theme.Sidebar, TextColor3 = Theme.Text })
                 end)
 
                 Button.MouseButton1Click:Connect(function()
@@ -648,26 +692,13 @@ function Library:CreateWindow(options)
 
             function Group:CreateToggle(options)
                 local ToggleFrame = Instance.new("Frame")
-                ToggleFrame.Size = UDim2.new(1, 0, 0, 15)
+                ToggleFrame.Size = UDim2.new(1, 0, 0, 16)
                 ToggleFrame.BackgroundTransparency = 1
                 ToggleFrame.Parent = GroupContainer
 
-                local ToggleBox = Instance.new("TextButton")
-                ToggleBox.Size = UDim2.new(0, 10, 0, 10)
-                ToggleBox.Position = UDim2.new(0, 2, 0, 2)
-                ToggleBox.BackgroundColor3 = Theme.ElementBackground
-                ToggleBox.BorderColor3 = Theme.DarkOutline
-                ToggleBox.Text = ""
-                ToggleBox.Parent = ToggleFrame
-
-                local Stroke = Instance.new("UIStroke")
-                Stroke.Thickness = 1
-                Stroke.Color = Theme.DarkOutline
-                Stroke.Parent = ToggleBox
-
                 local ToggleLabel = Instance.new("TextLabel")
-                ToggleLabel.Size = UDim2.new(1, -20, 1, 0)
-                ToggleLabel.Position = UDim2.new(0, 18, 0, 0)
+                ToggleLabel.Size = UDim2.new(1, -30, 1, 0)
+                ToggleLabel.Position = UDim2.new(0, 0, 0, 0)
                 ToggleLabel.BackgroundTransparency = 1
                 ToggleLabel.Text = options.Name
                 ToggleLabel.TextColor3 = Theme.TextDark
@@ -676,24 +707,46 @@ function Library:CreateWindow(options)
                 ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
                 ToggleLabel.Parent = ToggleFrame
 
+                -- Pill capsule switch track
+                local ToggleTrack = Instance.new("TextButton")
+                ToggleTrack.Size = UDim2.new(0, 26, 0, 14)
+                ToggleTrack.Position = UDim2.new(1, -26, 0.5, -7)
+                ToggleTrack.BackgroundColor3 = Theme.ElementBackground
+                ToggleTrack.BorderSizePixel = 0
+                ToggleTrack.Text = ""
+                ToggleTrack.Parent = ToggleFrame
+
+                local TrackCorner = Instance.new("UICorner")
+                TrackCorner.CornerRadius = UDim.new(1, 0) -- perfectly rounded pill capsule
+                TrackCorner.Parent = ToggleTrack
+
+                -- Knob ball inside capsule switch
+                local ToggleKnob = Instance.new("Frame")
+                ToggleKnob.Size = UDim2.new(0, 10, 0, 10)
+                ToggleKnob.Position = UDim2.new(0, 2, 0.5, -5)
+                ToggleKnob.BackgroundColor3 = Color3.fromRGB(240, 240, 245)
+                ToggleKnob.BorderSizePixel = 0
+                ToggleKnob.Parent = ToggleTrack
+
+                local KnobCorner = Instance.new("UICorner")
+                KnobCorner.CornerRadius = UDim.new(1, 0)
+                KnobCorner.Parent = ToggleKnob
+
                 local toggled = options.Default or false
 
                 local function Update()
                     local targetColor = toggled and Theme.AccentStart or Theme.ElementBackground
+                    local targetKnobPos = toggled and UDim2.new(1, -12, 0.5, -5) or UDim2.new(0, 2, 0.5, -5)
                     local targetTextColor = toggled and Theme.Text or Theme.TextDark
-                    tween(ToggleBox, 0.15, { BackgroundColor3 = targetColor })
+                    
+                    tween(ToggleTrack, 0.15, { BackgroundColor3 = targetColor })
+                    tween(ToggleKnob, 0.15, { Position = targetKnobPos })
                     tween(ToggleLabel, 0.15, { TextColor3 = targetTextColor })
+                    
                     if options.Callback then options.Callback(toggled) end
                 end
 
-                ToggleBox.MouseEnter:Connect(function()
-                    tween(ToggleBox, 0.15, { BorderColor3 = Theme.AccentStart })
-                end)
-                ToggleBox.MouseLeave:Connect(function()
-                    tween(ToggleBox, 0.15, { BorderColor3 = Theme.DarkOutline })
-                end)
-
-                ToggleBox.MouseButton1Click:Connect(function()
+                ToggleTrack.MouseButton1Click:Connect(function()
                     toggled = not toggled
                     Update()
                 end)
@@ -712,12 +765,12 @@ function Library:CreateWindow(options)
 
             function Group:CreateSlider(options)
                 local SliderFrame = Instance.new("Frame")
-                SliderFrame.Size = UDim2.new(1, 0, 0, 30)
+                SliderFrame.Size = UDim2.new(1, 0, 0, 32)
                 SliderFrame.BackgroundTransparency = 1
                 SliderFrame.Parent = GroupContainer
 
                 local SliderLabel = Instance.new("TextLabel")
-                SliderLabel.Size = UDim2.new(1, 0, 0, 15)
+                SliderLabel.Size = UDim2.new(1, -50, 0, 15)
                 SliderLabel.BackgroundTransparency = 1
                 SliderLabel.Text = options.Name
                 SliderLabel.TextColor3 = Theme.TextDark
@@ -726,18 +779,29 @@ function Library:CreateWindow(options)
                 SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
                 SliderLabel.Parent = SliderFrame
 
+                local ValueLabel = Instance.new("TextLabel")
+                ValueLabel.Size = UDim2.new(0, 50, 0, 15)
+                ValueLabel.Position = UDim2.new(1, -50, 0, 0)
+                ValueLabel.BackgroundTransparency = 1
+                ValueLabel.Text = "0"
+                ValueLabel.TextColor3 = Theme.Text
+                ValueLabel.Font = Theme.Font
+                ValueLabel.TextSize = Theme.TextSize
+                ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+                ValueLabel.Parent = SliderFrame
+
+                -- Thin 3px slider progress track
                 local SliderBack = Instance.new("TextButton")
-                SliderBack.Size = UDim2.new(1, -4, 0, 10)
-                SliderBack.Position = UDim2.new(0, 2, 0, 18)
-                SliderBack.BackgroundColor3 = Theme.ElementBackground
-                SliderBack.BorderColor3 = Theme.DarkOutline
+                SliderBack.Size = UDim2.new(1, 0, 0, 4)
+                SliderBack.Position = UDim2.new(0, 0, 0, 20)
+                SliderBack.BackgroundColor3 = Theme.Sidebar
+                SliderBack.BorderSizePixel = 0
                 SliderBack.Text = ""
                 SliderBack.Parent = SliderFrame
 
-                local Stroke = Instance.new("UIStroke")
-                Stroke.Thickness = 1
-                Stroke.Color = Theme.DarkOutline
-                Stroke.Parent = SliderBack
+                local BackCorner = Instance.new("UICorner")
+                BackCorner.CornerRadius = UDim.new(1, 0)
+                BackCorner.Parent = SliderBack
 
                 local SliderFill = Instance.new("Frame")
                 SliderFill.Size = UDim2.new(0, 0, 1, 0)
@@ -745,6 +809,10 @@ function Library:CreateWindow(options)
                 SliderFill.BorderSizePixel = 0
                 SliderFill.Parent = SliderBack
                 table.insert(Library.ThemeElements, SliderFill)
+
+                local FillCorner = Instance.new("UICorner")
+                FillCorner.CornerRadius = UDim.new(1, 0)
+                FillCorner.Parent = SliderFill
 
                 local FillGradient = Instance.new("UIGradient")
                 FillGradient.Color = ColorSequence.new({
@@ -754,16 +822,6 @@ function Library:CreateWindow(options)
                 FillGradient.Parent = SliderFill
                 table.insert(Library.Gradients, FillGradient)
 
-                local ValueLabel = Instance.new("TextLabel")
-                ValueLabel.Size = UDim2.new(1, 0, 1, 0)
-                ValueLabel.BackgroundTransparency = 1
-                ValueLabel.Text = "0/" .. options.Max
-                ValueLabel.TextColor3 = Theme.Text
-                ValueLabel.Font = Theme.Font
-                ValueLabel.TextSize = Theme.TextSize - 2
-                ValueLabel.ZIndex = 2
-                ValueLabel.Parent = SliderBack
-
                 local min = options.Min or 0
                 local max = options.Max or 100
                 local current = options.Default or min
@@ -772,7 +830,7 @@ function Library:CreateWindow(options)
                 local function UpdateVisuals()
                     local percent = math.clamp((current - min) / (max - min), 0, 1)
                     SliderFill.Size = UDim2.new(percent, 0, 1, 0)
-                    ValueLabel.Text = current .. "/" .. max
+                    ValueLabel.Text = tostring(current)
                 end
 
                 local function UpdateInput(input)
@@ -781,13 +839,6 @@ function Library:CreateWindow(options)
                     UpdateVisuals()
                     if options.Callback then options.Callback(current) end
                 end
-
-                SliderBack.MouseEnter:Connect(function()
-                    tween(SliderBack, 0.15, { BorderColor3 = Theme.AccentStart })
-                end)
-                SliderBack.MouseLeave:Connect(function()
-                    tween(SliderBack, 0.15, { BorderColor3 = Theme.DarkOutline })
-                end)
 
                 SliderBack.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -818,13 +869,13 @@ function Library:CreateWindow(options)
 
             function Group:CreateKeybind(options)
                 local KeybindFrame = Instance.new("Frame")
-                KeybindFrame.Size = UDim2.new(1, 0, 0, 20)
+                KeybindFrame.Size = UDim2.new(1, 0, 0, 16)
                 KeybindFrame.BackgroundTransparency = 1
                 KeybindFrame.Parent = GroupContainer
 
                 local KeybindLabel = Instance.new("TextLabel")
                 KeybindLabel.Size = UDim2.new(1, -60, 1, 0)
-                KeybindLabel.Position = UDim2.new(0, 2, 0, 0)
+                KeybindLabel.Position = UDim2.new(0, 0, 0, 0)
                 KeybindLabel.BackgroundTransparency = 1
                 KeybindLabel.Text = options.Name
                 KeybindLabel.TextColor3 = Theme.TextDark
@@ -833,30 +884,26 @@ function Library:CreateWindow(options)
                 KeybindLabel.TextXAlignment = Enum.TextXAlignment.Left
                 KeybindLabel.Parent = KeybindFrame
 
+                -- Clean text button aligned on the right (Evicted style)
                 local KeybindButton = Instance.new("TextButton")
-                KeybindButton.Size = UDim2.new(0, 50, 1, 0)
-                KeybindButton.Position = UDim2.new(1, -52, 0, 0)
-                KeybindButton.BackgroundColor3 = Theme.ElementBackground
-                KeybindButton.BorderColor3 = Theme.LightOutline
+                KeybindButton.Size = UDim2.new(0, 60, 1, 0)
+                KeybindButton.Position = UDim2.new(1, -60, 0, 0)
+                KeybindButton.BackgroundTransparency = 1
                 KeybindButton.Text = options.Default.Name or (tostring(options.Default):gsub("Enum.UserInputType.", ""):gsub("Enum.KeyCode.", ""))
                 KeybindButton.TextColor3 = Theme.Text
                 KeybindButton.Font = Theme.Font
                 KeybindButton.TextSize = Theme.TextSize
+                KeybindButton.TextXAlignment = Enum.TextXAlignment.Right
                 KeybindButton.Parent = KeybindFrame
-
-                local Stroke = Instance.new("UIStroke")
-                Stroke.Thickness = 1
-                Stroke.Color = Theme.DarkOutline
-                Stroke.Parent = KeybindButton
 
                 local currentKey = options.Default
                 local listening = false
 
                 KeybindButton.MouseEnter:Connect(function()
-                    tween(KeybindButton, 0.15, { BorderColor3 = Theme.AccentStart })
+                    tween(KeybindButton, 0.15, { TextColor3 = Theme.AccentStart })
                 end)
                 KeybindButton.MouseLeave:Connect(function()
-                    tween(KeybindButton, 0.15, { BorderColor3 = Theme.LightOutline })
+                    tween(KeybindButton, 0.15, { TextColor3 = Theme.Text })
                 end)
 
                 KeybindButton.MouseButton1Click:Connect(function()
@@ -906,13 +953,13 @@ function Library:CreateWindow(options)
 
             function Group:CreateColorpicker(options)
                 local ColorpickerFrame = Instance.new("Frame")
-                ColorpickerFrame.Size = UDim2.new(1, 0, 0, 20)
+                ColorpickerFrame.Size = UDim2.new(1, 0, 0, 16)
                 ColorpickerFrame.BackgroundTransparency = 1
                 ColorpickerFrame.Parent = GroupContainer
 
                 local ColorpickerLabel = Instance.new("TextLabel")
                 ColorpickerLabel.Size = UDim2.new(1, -30, 1, 0)
-                ColorpickerLabel.Position = UDim2.new(0, 2, 0, 0)
+                ColorpickerLabel.Position = UDim2.new(0, 0, 0, 0)
                 ColorpickerLabel.BackgroundTransparency = 1
                 ColorpickerLabel.Text = options.Name
                 ColorpickerLabel.TextColor3 = Theme.TextDark
@@ -921,23 +968,23 @@ function Library:CreateWindow(options)
                 ColorpickerLabel.TextXAlignment = Enum.TextXAlignment.Left
                 ColorpickerLabel.Parent = ColorpickerFrame
 
+                -- Circular color badge aligned to the right (Evicted style)
                 local PreviewButton = Instance.new("TextButton")
-                PreviewButton.Size = UDim2.new(0, 20, 0, 10)
-                PreviewButton.Position = UDim2.new(1, -22, 0.5, -5)
+                PreviewButton.Size = UDim2.new(0, 10, 0, 10)
+                PreviewButton.Position = UDim2.new(1, -12, 0.5, -5)
                 PreviewButton.BackgroundColor3 = options.Default or Color3.fromRGB(255, 255, 255)
-                PreviewButton.BorderColor3 = Theme.LightOutline
+                PreviewButton.BorderSizePixel = 0
                 PreviewButton.Text = ""
                 PreviewButton.Parent = ColorpickerFrame
 
-                local Stroke = Instance.new("UIStroke")
-                Stroke.Thickness = 1
-                Stroke.Color = Theme.DarkOutline
-                Stroke.Parent = PreviewButton
+                local PreviewCorner = Instance.new("UICorner")
+                PreviewCorner.CornerRadius = UDim.new(1, 0) -- perfectly circular preview badge
+                PreviewCorner.Parent = PreviewButton
 
                 -- Dropdown Drawer Frame
                 local Drawer = Instance.new("Frame")
                 Drawer.Size = UDim2.new(1, 0, 0, 0)
-                Drawer.Position = UDim2.new(0, 0, 0, 20)
+                Drawer.Position = UDim2.new(0, 0, 0, 16)
                 Drawer.BackgroundTransparency = 1
                 Drawer.ClipsDescendants = true
                 Drawer.Visible = false
@@ -948,30 +995,28 @@ function Library:CreateWindow(options)
                 CurrentColorBox.Size = UDim2.new(1, -54, 0, 20)
                 CurrentColorBox.Position = UDim2.new(0, 2, 0, 110)
                 CurrentColorBox.BackgroundColor3 = options.Default or Color3.fromRGB(255, 255, 255)
-                CurrentColorBox.BorderColor3 = Theme.LightOutline
+                CurrentColorBox.BorderSizePixel = 0
                 CurrentColorBox.Parent = Drawer
 
-                local BoxStroke = Instance.new("UIStroke")
-                BoxStroke.Thickness = 1
-                BoxStroke.Color = Theme.DarkOutline
-                BoxStroke.Parent = CurrentColorBox
+                local BoxCorner = Instance.new("UICorner")
+                BoxCorner.CornerRadius = UDim.new(0, 4)
+                BoxCorner.Parent = CurrentColorBox
 
                 -- Close Button in Drawer
                 local CloseButton = Instance.new("TextButton")
                 CloseButton.Size = UDim2.new(0, 48, 0, 20)
                 CloseButton.Position = UDim2.new(1, -50, 0, 110)
-                CloseButton.BackgroundColor3 = Theme.Darker
-                CloseButton.BorderColor3 = Theme.LightOutline
+                CloseButton.BackgroundColor3 = Theme.Sidebar
+                CloseButton.BorderSizePixel = 0
                 CloseButton.Text = "Close"
                 CloseButton.TextColor3 = Theme.Text
                 CloseButton.Font = Theme.Font
                 CloseButton.TextSize = 12
                 CloseButton.Parent = Drawer
 
-                local CloseStroke = Instance.new("UIStroke")
-                CloseStroke.Thickness = 1
-                CloseStroke.Color = Theme.DarkOutline
-                CloseStroke.Parent = CloseButton
+                local CloseCorner = Instance.new("UICorner")
+                CloseCorner.CornerRadius = UDim.new(0, 4)
+                CloseCorner.Parent = CloseButton
 
                 local Spectrum = Instance.new("ImageButton")
                 Spectrum.Size = UDim2.new(1, -4, 0, 100)
@@ -983,10 +1028,9 @@ function Library:CreateWindow(options)
                 Spectrum.ZIndex = 10
                 Spectrum.Parent = Drawer
 
-                local SpectrumStroke = Instance.new("UIStroke")
-                SpectrumStroke.Thickness = 1
-                SpectrumStroke.Color = Theme.DarkOutline
-                SpectrumStroke.Parent = Spectrum
+                local SpectrumCorner = Instance.new("UICorner")
+                SpectrumCorner.CornerRadius = UDim.new(0, 4)
+                SpectrumCorner.Parent = Spectrum
 
                 local RainbowGradient = Instance.new("UIGradient")
                 RainbowGradient.Color = ColorSequence.new({
@@ -1032,10 +1076,9 @@ function Library:CreateWindow(options)
                 Indicator.ZIndex = 12
                 Indicator.Parent = Spectrum
                 
-                local indicatorStroke = Instance.new("UIStroke")
-                indicatorStroke.Thickness = 1
-                indicatorStroke.Color = Color3.fromRGB(0, 0, 0)
-                indicatorStroke.Parent = Indicator
+                local indicatorCorner = Instance.new("UICorner")
+                indicatorCorner.CornerRadius = UDim.new(0.5, 0)
+                indicatorCorner.Parent = Indicator
 
                 local toggled = false
                 local activeColor = options.Default or Color3.fromRGB(255, 255, 255)
@@ -1108,7 +1151,7 @@ function Library:CreateWindow(options)
                     toggled = state
                     
                     local targetDrawerHeight = toggled and 135 or 0
-                    local targetFrameHeight = toggled and 155 or 20
+                    local targetFrameHeight = toggled and 151 or 16
                     
                     if toggled then
                         Drawer.Visible = true
@@ -1123,13 +1166,6 @@ function Library:CreateWindow(options)
                         end)
                     end
                 end
-
-                PreviewButton.MouseEnter:Connect(function()
-                    tween(PreviewButton, 0.15, { BorderColor3 = Theme.AccentStart })
-                end)
-                PreviewButton.MouseLeave:Connect(function()
-                    tween(PreviewButton, 0.15, { BorderColor3 = Theme.LightOutline })
-                end)
 
                 PreviewButton.MouseButton1Click:Connect(function()
                     Toggle(not toggled)
@@ -1152,7 +1188,7 @@ function Library:CreateWindow(options)
 
             function Group:CreateDropdown(options)
                 local DropdownFrame = Instance.new("Frame")
-                DropdownFrame.Size = UDim2.new(1, 0, 0, 35)
+                DropdownFrame.Size = UDim2.new(1, 0, 0, 36)
                 DropdownFrame.BackgroundTransparency = 1
                 DropdownFrame.Parent = GroupContainer
 
@@ -1167,10 +1203,10 @@ function Library:CreateWindow(options)
                 DropdownLabel.Parent = DropdownFrame
 
                 local SelectorButton = Instance.new("TextButton")
-                SelectorButton.Size = UDim2.new(1, -4, 0, 18)
-                SelectorButton.Position = UDim2.new(0, 2, 0, 17)
-                SelectorButton.BackgroundColor3 = Theme.ElementBackground
-                SelectorButton.BorderColor3 = Theme.LightOutline
+                SelectorButton.Size = UDim2.new(1, 0, 0, 18)
+                SelectorButton.Position = UDim2.new(0, 0, 0, 18)
+                SelectorButton.BackgroundColor3 = Theme.Sidebar
+                SelectorButton.BorderSizePixel = 0
                 SelectorButton.Text = "  " .. (options.Default or options.List[1] or "Select...")
                 SelectorButton.TextColor3 = Theme.Text
                 SelectorButton.Font = Theme.Font
@@ -1178,10 +1214,9 @@ function Library:CreateWindow(options)
                 SelectorButton.TextXAlignment = Enum.TextXAlignment.Left
                 SelectorButton.Parent = DropdownFrame
 
-                local SelectorStroke = Instance.new("UIStroke")
-                SelectorStroke.Thickness = 1
-                SelectorStroke.Color = Theme.DarkOutline
-                SelectorStroke.Parent = SelectorButton
+                local SelCorner = Instance.new("UICorner")
+                SelCorner.CornerRadius = UDim.new(0, 4)
+                SelCorner.Parent = SelectorButton
 
                 local ArrowLabel = Instance.new("TextLabel")
                 ArrowLabel.Size = UDim2.new(0, 15, 1, 0)
@@ -1195,10 +1230,10 @@ function Library:CreateWindow(options)
                 ArrowLabel.Parent = SelectorButton
 
                 local Drawer = Instance.new("ScrollingFrame")
-                Drawer.Size = UDim2.new(1, -4, 0, 0)
-                Drawer.Position = UDim2.new(0, 2, 0, 36)
-                Drawer.BackgroundColor3 = Theme.Background
-                Drawer.BorderColor3 = Theme.DarkOutline
+                Drawer.Size = UDim2.new(1, 0, 0, 0)
+                Drawer.Position = UDim2.new(0, 0, 0, 38)
+                Drawer.BackgroundColor3 = Theme.Sidebar
+                Drawer.BorderSizePixel = 0
                 Drawer.ScrollBarThickness = 2
                 Drawer.ScrollBarImageColor3 = Theme.AccentStart
                 Drawer.ZIndex = 15
@@ -1206,10 +1241,9 @@ function Library:CreateWindow(options)
                 Drawer.Parent = DropdownFrame
                 table.insert(Library.ThemeElements, Drawer)
 
-                local DrawerStroke = Instance.new("UIStroke")
-                DrawerStroke.Thickness = 1
-                DrawerStroke.Color = Theme.DarkOutline
-                DrawerStroke.Parent = Drawer
+                local DrawerCorner = Instance.new("UICorner")
+                DrawerCorner.CornerRadius = UDim.new(0, 4)
+                DrawerCorner.Parent = Drawer
 
                 local DrawerLayout = Instance.new("UIListLayout")
                 DrawerLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -1224,8 +1258,8 @@ function Library:CreateWindow(options)
                     if options.Callback then options.Callback(val) end
                     
                     toggled = false
-                    tween(Drawer, 0.15, { Size = UDim2.new(1, -4, 0, 0) })
-                    tween(DropdownFrame, 0.15, { Size = UDim2.new(1, 0, 0, 35) })
+                    tween(Drawer, 0.15, { Size = UDim2.new(1, 0, 0, 0) })
+                    tween(DropdownFrame, 0.15, { Size = UDim2.new(1, 0, 0, 36) })
                     task.delay(0.15, function()
                         if not toggled then Drawer.Visible = false end
                     end)
@@ -1234,7 +1268,7 @@ function Library:CreateWindow(options)
                 for i, item in ipairs(options.List) do
                     local ItemBtn = Instance.new("TextButton")
                     ItemBtn.Size = UDim2.new(1, 0, 0, 18)
-                    ItemBtn.BackgroundColor3 = Theme.ElementBackground
+                    ItemBtn.BackgroundColor3 = Theme.Sidebar
                     ItemBtn.BorderSizePixel = 0
                     ItemBtn.Text = "  " .. item
                     ItemBtn.TextColor3 = Theme.TextDark
@@ -1246,10 +1280,10 @@ function Library:CreateWindow(options)
                     ItemBtn.Parent = Drawer
 
                     ItemBtn.MouseEnter:Connect(function()
-                        tween(ItemBtn, 0.15, { BackgroundColor3 = Theme.DarkOutline, TextColor3 = Theme.AccentEnd })
+                        tween(ItemBtn, 0.15, { BackgroundColor3 = Theme.LightOutline, TextColor3 = Theme.AccentEnd })
                     end)
                     ItemBtn.MouseLeave:Connect(function()
-                        tween(ItemBtn, 0.15, { BackgroundColor3 = Theme.ElementBackground, TextColor3 = Theme.TextDark })
+                        tween(ItemBtn, 0.15, { BackgroundColor3 = Theme.Sidebar, TextColor3 = Theme.TextDark })
                     end)
                     ItemBtn.MouseButton1Click:Connect(function()
                         selectOption(item)
@@ -1261,16 +1295,16 @@ function Library:CreateWindow(options)
                     toggled = state
                     
                     local maxItemsVisible = math.min(6, #options.List)
-                    local targetDrawerHeight = toggled and (maxItemsVisible * 18 + 2) or 0
-                    local targetFrameHeight = toggled and (35 + targetDrawerHeight + 5) or 35
+                    local targetDrawerHeight = toggled and (maxItemsVisible * 18) or 0
+                    local targetFrameHeight = toggled and (36 + targetDrawerHeight + 4) or 36
                     
                     if toggled then
-                        Drawer.Size = UDim2.new(1, -4, 0, 0)
+                        Drawer.Size = UDim2.new(1, 0, 0, 0)
                         Drawer.CanvasSize = UDim2.new(0, 0, 0, #options.List * 18)
                         Drawer.Visible = true
                     end
                     
-                    tween(Drawer, 0.15, { Size = UDim2.new(1, -4, 0, targetDrawerHeight) })
+                    tween(Drawer, 0.15, { Size = UDim2.new(1, 0, 0, targetDrawerHeight) })
                     tween(DropdownFrame, 0.15, { Size = UDim2.new(1, 0, 0, targetFrameHeight) })
 
                     if not toggled then
@@ -1281,10 +1315,10 @@ function Library:CreateWindow(options)
                 end
 
                 SelectorButton.MouseEnter:Connect(function()
-                    tween(SelectorButton, 0.15, { BorderColor3 = Theme.AccentStart })
+                    tween(SelectorButton, 0.15, { BackgroundColor3 = Theme.LightOutline })
                 end)
                 SelectorButton.MouseLeave:Connect(function()
-                    tween(SelectorButton, 0.15, { BorderColor3 = Theme.LightOutline })
+                    tween(SelectorButton, 0.15, { BackgroundColor3 = Theme.Sidebar })
                 end)
 
                 SelectorButton.MouseButton1Click:Connect(function()

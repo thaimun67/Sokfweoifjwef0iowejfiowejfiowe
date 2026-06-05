@@ -71,14 +71,14 @@ local Services = {
 
 -- Configuration Colors (Theme)
 local Theme = {
-    Background = Color3.fromRGB(18, 18, 20),
-    DarkOutline = Color3.fromRGB(35, 35, 40),
-    LightOutline = Color3.fromRGB(50, 50, 55),
-    AccentStart = Color3.fromRGB(115, 120, 255),
-    AccentEnd = Color3.fromRGB(150, 150, 255),
-    Text = Color3.fromRGB(220, 220, 220),
-    TextDark = Color3.fromRGB(150, 150, 150),
-    ElementBackground = Color3.fromRGB(25, 25, 30),
+    Background = Color3.fromRGB(20, 21, 26),
+    DarkOutline = Color3.fromRGB(36, 37, 44),
+    LightOutline = Color3.fromRGB(48, 50, 60),
+    AccentStart = Color3.fromRGB(219, 29, 222),
+    AccentEnd = Color3.fromRGB(150, 50, 255),
+    Text = Color3.fromRGB(240, 240, 245),
+    TextDark = Color3.fromRGB(130, 130, 160),
+    ElementBackground = Color3.fromRGB(45, 47, 56),
     Font = Enum.Font.Code,
     TextSize = 13
 }
@@ -96,8 +96,8 @@ if State.AimKey == nil then State.AimKey = Enum.UserInputType.MouseButton2 end
 if State.MenuToggleKey == nil then State.MenuToggleKey = Enum.KeyCode.Insert end
 if State.AimKeyMode == nil then State.AimKeyMode = "Hold" end
 if State.BhopKeyMode == nil then State.BhopKeyMode = "Hold" end
-if State.ThemeAccentStart == nil then State.ThemeAccentStart = Color3.fromRGB(115, 120, 255) end
-if State.ThemeAccentEnd == nil then State.ThemeAccentEnd = Color3.fromRGB(150, 150, 255) end
+if State.ThemeAccentStart == nil then State.ThemeAccentStart = Color3.fromRGB(219, 29, 222) end
+if State.ThemeAccentEnd == nil then State.ThemeAccentEnd = Color3.fromRGB(150, 50, 255) end
 
 if State.ESPEnabled == nil then State.ESPEnabled = false end
 if State.BoxESP == nil then State.BoxESP = false end
@@ -315,7 +315,7 @@ ESPGroup:CreateToggle({ Name = "team check", Default = true, Callback = function
 local ChamsGroup = VisualsTab:CreateGroupbox("chams styling")
 ChamsGroup:CreateSlider({ Name = "fill transparency", Min = 0, Max = 100, Default = 60, Callback = function(v) State.ChamsFillTrans = v / 100; pcall(ESPModule.updateESP) end })
 ChamsGroup:CreateSlider({ Name = "outline transparency", Min = 0, Max = 100, Default = 20, Callback = function(v) State.ChamsOutlineTrans = v / 100; pcall(ESPModule.updateESP) end })
-ChamsGroup:CreateColorpicker({ Name = "fill color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.ChamsFillR, State.ChamsFillG, State.ChamsFillB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255); pcall(ESPModule.updateESP) end })
+ChamsGroup:CreateColorpicker({ Name = "fill color", Default = Color3.fromRGB(219, 29, 222), Callback = function(c) State.ChamsFillR, State.ChamsFillG, State.ChamsFillB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255); pcall(ESPModule.updateESP) end })
 ChamsGroup:CreateColorpicker({ Name = "outline color", Default = Color3.fromRGB(255, 255, 255), Callback = function(c) State.ChamsOutlineR, State.ChamsOutlineG, State.ChamsOutlineB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255); pcall(ESPModule.updateESP) end })
 
 local CamGroup = VisualsTab:CreateGroupbox("camera")
@@ -329,7 +329,7 @@ if State.CurrentSkyboxName == nil then State.CurrentSkyboxName = "space" end
 SkyGroup:CreateDropdown({ Name = "Skybox Style", List = skyboxNames, Default = "space", Callback = function(v) State.CurrentSkyboxName = v; if State.CustomSkyboxEnabled then pcall(CustomSkyboxModule.applySkybox, v) end end })
 
 local FOVColorGroup = VisualsTab:CreateGroupbox("fov circle styling")
-FOVColorGroup:CreateColorpicker({ Name = "circle color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.FOVR, State.FOVG, State.FOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+FOVColorGroup:CreateColorpicker({ Name = "circle color", Default = Color3.fromRGB(219, 29, 222), Callback = function(c) State.FOVR, State.FOVG, State.FOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 FOVColorGroup:CreateSlider({ Name = "thickness", Min = 1, Max = 5, Default = 1, Callback = function(v) State.FOVThickness = v end })
 
 local WeapChamsGroup = VisualsTab:CreateGroupbox("weapon chams")
@@ -342,7 +342,7 @@ end })
 WeapChamsGroup:CreateToggle({ Name = "always on top", Default = false, Callback = function(s) State.WeaponChamsDepth = s end })
 WeapChamsGroup:CreateSlider({ Name = "weapon fill trans", Min = 0, Max = 100, Default = 30, Callback = function(v) State.WeaponChamsFillTrans = v / 100 end })
 WeapChamsGroup:CreateSlider({ Name = "weapon outline trans", Min = 0, Max = 100, Default = 0, Callback = function(v) State.WeaponChamsOutlineTrans = v / 100 end })
-WeapChamsGroup:CreateColorpicker({ Name = "weapon fill color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.WeaponChamsFillR, State.WeaponChamsFillG, State.WeaponChamsFillB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+WeapChamsGroup:CreateColorpicker({ Name = "weapon fill color", Default = Color3.fromRGB(219, 29, 222), Callback = function(c) State.WeaponChamsFillR, State.WeaponChamsFillG, State.WeaponChamsFillB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 WeapChamsGroup:CreateColorpicker({ Name = "weapon outline color", Default = Color3.fromRGB(180, 180, 255), Callback = function(c) State.WeaponChamsOutlineR, State.WeaponChamsOutlineG, State.WeaponChamsOutlineB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 WeapChamsGroup:CreateSlider({ Name = "hand fill trans", Min = 0, Max = 100, Default = 50, Callback = function(v) State.HandChamsFillTrans = v / 100 end })
 WeapChamsGroup:CreateSlider({ Name = "hand outline trans", Min = 0, Max = 100, Default = 0, Callback = function(v) State.HandChamsOutlineTrans = v / 100 end })
@@ -353,7 +353,7 @@ local TracesGroup = VisualsTab:CreateGroupbox("bullet traces")
 TracesGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.BulletTracesEnabled = s end })
 TracesGroup:CreateSlider({ Name = "thickness (1-10)", Min = 1, Max = 10, Default = 2, Callback = function(v) State.BulletTraceThickness = v / 100 end })
 TracesGroup:CreateSlider({ Name = "duration (1-5s)", Min = 1, Max = 5, Default = 1, Callback = function(v) State.BulletTraceDuration = v end })
-TracesGroup:CreateColorpicker({ Name = "color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.BulletTraceColorR, State.BulletTraceColorG, State.BulletTraceColorB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
+TracesGroup:CreateColorpicker({ Name = "color", Default = Color3.fromRGB(219, 29, 222), Callback = function(c) State.BulletTraceColorR, State.BulletTraceColorG, State.BulletTraceColorB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 
 -- // ====== Tab: Rage ====== \\ --
 local RageTab = Window:CreateTab("rage")
