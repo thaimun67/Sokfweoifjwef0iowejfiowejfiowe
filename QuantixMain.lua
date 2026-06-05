@@ -192,6 +192,7 @@ local AimbotModule = LoadModule("Aimbot")(State, Services, GameStateModule)
 local WeaponChamsModule = LoadModule("WeaponChams")(State, Services)
 local SpeedBoostModule = LoadModule("SpeedBoost")(State, Services)
 local BhopModule = LoadModule("Bhop")(State, Services)
+local HitsoundsModule = LoadModule("Hitsounds")(State, Services)
 
 -- Cleanup old ESP elements from previous runs
 print("[Quantix Loader] Cleaning up old ESP elements...")
@@ -205,6 +206,7 @@ pcall(function() RecoilModule.startScanner() end)
 print("[Quantix Loader] Starting hooks...")
 pcall(function() BulletTracesModule.startBulletTracesHook() end)
 pcall(function() HookManagerModule.startHook() end)
+pcall(function() HitsoundsModule.start() end)
 
 -- // ================================== \\ --
 -- //          Start Feature Loops       \\ --
@@ -355,6 +357,10 @@ TracesGroup:CreateSlider({ Name = "thickness (1-10)", Min = 1, Max = 10, Default
 TracesGroup:CreateSlider({ Name = "duration (1-5s)", Min = 1, Max = 5, Default = 1, Callback = function(v) State.BulletTraceDuration = v end })
 TracesGroup:CreateColorpicker({ Name = "color", Default = Color3.fromRGB(219, 29, 222), Callback = function(c) State.BulletTraceColorR, State.BulletTraceColorG, State.BulletTraceColorB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 
+local Hitgroup = VisualsTab:CreateGroupbox("hitsounds")
+Hitgroup:CreateDropdown({ Name = "hitsound style", List = { "Default", "Click", "Skeet" }, Default = State.Hitsound or "Default", Callback = function(v) State.Hitsound = v end })
+Hitgroup:CreateDropdown({ Name = "headshot sound", List = { "None", "CS Headshot" }, Default = State.HeadshotSound or "None", Callback = function(v) State.HeadshotSound = v end })
+
 -- // ====== Tab: Rage ====== \\ --
 local RageTab = Window:CreateTab("rage")
 
@@ -459,6 +465,9 @@ local function doUnload()
 
     -- Cleanup speed boost
     pcall(SpeedBoostModule.cleanup)
+
+    -- Cleanup hitsounds
+    pcall(HitsoundsModule.cleanup)
 
     -- Cleanup HUD elements and references
     if WatermarkModule and WatermarkModule.toggle then pcall(function() WatermarkModule.toggle(false) end) end
