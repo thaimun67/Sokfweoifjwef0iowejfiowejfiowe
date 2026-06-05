@@ -4,8 +4,12 @@ return function(State, Services)
         if not State.MagicBulletEnabled then return false, nil end
 
         if State.GetClosestPlayer then
-            -- Bypass visibility check since magic bullet shoots through walls
-            local target = State.GetClosestPlayer(true)
+            -- Temporarily bypass visibility check so we can target players behind walls
+            local oldVisibleCheck = State.VisibleCheck
+            State.VisibleCheck = false
+            local target = State.GetClosestPlayer(true) -- Pass true to use Silent Aim FOV
+            State.VisibleCheck = oldVisibleCheck
+
             if target and target.Part then
                 local targetPos = target.Part.Position
                 if State.PredictionEnabled then
@@ -16,8 +20,8 @@ return function(State, Services)
 
                 local activeCam = workspace.CurrentCamera
                 if activeCam then
-                    -- Teleport camera position locally to be right next to target head, looking at the head
-                    -- This starts the raycast verification from the target head, bypassing all intervening walls
+                    -- Teleport shot origin to be extremely close to the target's head, looking at the head
+                    -- This starts the raycast from right in front of the target, bypassing all walls
                     local targetCFrame = CFrame.lookAt(targetPos + Vector3.new(0, 0.1, 0.5), targetPos)
                     local proxyCam = setmetatable({}, {
                         __index = function(t, k)
