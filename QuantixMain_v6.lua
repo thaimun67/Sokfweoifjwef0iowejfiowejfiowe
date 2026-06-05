@@ -186,6 +186,7 @@ local RecoilModule = LoadModule("Recoil")(State, Services)
 local ESPModule = LoadModule("ESP")(State, Services, Theme, GameStateModule)
 local AimbotModule = LoadModule("Aimbot")(State, Services, GameStateModule)
 local WeaponChamsModule = LoadModule("WeaponChams")(State, Services)
+local SpeedBoostModule = LoadModule("SpeedBoost")(State, Services)
 
 -- Cleanup old ESP elements from previous runs
 print("[Quantix Loader] Cleaning up old ESP elements...")
@@ -228,6 +229,7 @@ table.insert(State.Connections, RunService.RenderStepped:Connect(function()
     pcall(function() KeybindsListModule.update() end)
     pcall(function() ActiveFeaturesModule.update() end)
     pcall(function() WeaponChamsModule.update() end)
+    pcall(function() SpeedBoostModule.update() end)
 end))
 
 -- Setup Player added/removing handlers
@@ -338,6 +340,8 @@ local RageGroup = RageTab:CreateGroupbox("exploits")
 RageGroup:CreateToggle({ Name = "no recoil", Default = false, Callback = function(s) State.NoRecoilEnabled = s end })
 RageGroup:CreateToggle({ Name = "no spread", Default = false, Callback = function(s) State.NoSpreadEnabled = s end })
 RageGroup:CreateToggle({ Name = "infinite ammo", Default = false, Callback = function(s) State.InfiniteAmmoEnabled = s end })
+RageGroup:CreateToggle({ Name = "speed boost (bypass)", Default = false, Callback = function(s) State.SpeedBoostEnabled = s end })
+RageGroup:CreateSlider({ Name = "boost speed value", Min = 30, Max = 40, Default = 35, Callback = function(v) State.SpeedBoostValue = v end })
 
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
@@ -408,6 +412,9 @@ local function doUnload()
 
     -- Cleanup weapon/hand chams
     pcall(WeaponChamsModule.cleanup)
+
+    -- Cleanup speed boost
+    pcall(SpeedBoostModule.cleanup)
 
     -- Cleanup HUD elements and references
     if WatermarkModule and WatermarkModule.toggle then pcall(function() WatermarkModule.toggle(false) end) end
