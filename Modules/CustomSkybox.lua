@@ -69,41 +69,61 @@ return function(State, Services)
         }
     }
 
+    local currentSky = nil
+
     function module.applySkybox(name)
         if not State.CustomSkyboxEnabled then return end
-        local sky = Lighting:FindFirstChildOfClass("Sky")
-        if not sky then
-            sky = Instance.new("Sky")
-            sky.Parent = Lighting
-        end
-
         local props = customSkyBoxes[name]
         if not props then return end
 
         if not originalSkyProps.Saved then
-            originalSkyProps.Saved = true
-            originalSkyProps.SkyboxBk = sky.SkyboxBk
-            originalSkyProps.SkyboxDn = sky.SkyboxDn
-            originalSkyProps.SkyboxFt = sky.SkyboxFt
-            originalSkyProps.SkyboxLf = sky.SkyboxLf
-            originalSkyProps.SkyboxRt = sky.SkyboxRt
-            originalSkyProps.SkyboxUp = sky.SkyboxUp
+            local sky = Lighting:FindFirstChildOfClass("Sky")
+            if sky then
+                originalSkyProps.Saved = true
+                originalSkyProps.SkyboxBk = sky.SkyboxBk
+                originalSkyProps.SkyboxDn = sky.SkyboxDn
+                originalSkyProps.SkyboxFt = sky.SkyboxFt
+                originalSkyProps.SkyboxLf = sky.SkyboxLf
+                originalSkyProps.SkyboxRt = sky.SkyboxRt
+                originalSkyProps.SkyboxUp = sky.SkyboxUp
+            else
+                originalSkyProps.Saved = "None"
+            end
         end
 
-        for k, v in pairs(props) do sky[k] = v end
+        for _, child in ipairs(Lighting:GetChildren()) do
+            if child:IsA("Sky") then child:Destroy() end
+        end
+
+        local sky = Instance.new("Sky")
+        sky.Name = "QuantixSkybox"
+        sky.SkyboxBk = props.SkyboxBk
+        sky.SkyboxDn = props.SkyboxDn
+        sky.SkyboxFt = props.SkyboxFt
+        sky.SkyboxLf = props.SkyboxLf
+        sky.SkyboxRt = props.SkyboxRt
+        sky.SkyboxUp = props.SkyboxUp
+        sky.Parent = Lighting
+        currentSky = sky
     end
 
     function module.restoreSkybox()
-        local sky = Lighting:FindFirstChildOfClass("Sky")
-        if sky and originalSkyProps.Saved then
+        if currentSky then currentSky:Destroy(); currentSky = nil end
+        for _, child in ipairs(Lighting:GetChildren()) do
+            if child.Name == "QuantixSkybox" then child:Destroy() end
+        end
+
+        if originalSkyProps.Saved and originalSkyProps.Saved ~= "None" then
+            local sky = Instance.new("Sky")
             sky.SkyboxBk = originalSkyProps.SkyboxBk
             sky.SkyboxDn = originalSkyProps.SkyboxDn
             sky.SkyboxFt = originalSkyProps.SkyboxFt
             sky.SkyboxLf = originalSkyProps.SkyboxLf
             sky.SkyboxRt = originalSkyProps.SkyboxRt
             sky.SkyboxUp = originalSkyProps.SkyboxUp
-            originalSkyProps.Saved = false
+            sky.Parent = Lighting
         end
+        originalSkyProps.Saved = false
     end
 
     function module.update()

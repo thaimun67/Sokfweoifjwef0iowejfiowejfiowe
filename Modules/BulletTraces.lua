@@ -35,16 +35,15 @@ return function(State, Services)
 
     function module.startBulletTracesHook()
         task.spawn(function()
-            local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events", 10)
-            if not Events then return end
+            local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 10)
+            if not Remotes then return end
             
-            local ShootEvent = Events:WaitForChild("ShootEvent", 10)
             if hookmetamethod then
                 local oldNamecall
                 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
                     local method = getnamecallmethod()
                     if not checkcaller() and method == "FireServer" then
-                        if ShootEvent and self == ShootEvent then
+                        if self.Name == "ShootEvent" then
                             local args = {...}
                             if State.BulletTracesEnabled and args[1] then
                                 local data = args[1]

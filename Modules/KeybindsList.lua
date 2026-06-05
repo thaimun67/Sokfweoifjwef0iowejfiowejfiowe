@@ -27,7 +27,10 @@ return function(State, Services, Theme)
         end))
     end
 
+    local lastActiveHash = ""
+    
     function module.toggle(enabled)
+        lastActiveHash = ""
         if State.KeybindsGui then pcall(function() State.KeybindsGui:Destroy() end); State.KeybindsGui = nil end
         if not enabled then return end
 
@@ -111,7 +114,7 @@ return function(State, Services, Theme)
     end
 
     function module.update()
-        if not State.KeybindsGui or not State.KeybindsGui.Enabled or not State.KeybindsListContainer then return end
+        if not State.KeybindsGui or not State.KeybindsListContainer then return end
         
         local active = {}
         if State.AimbotEnabled then
@@ -124,6 +127,16 @@ return function(State, Services, Theme)
         
         local menuKeyStr = getKeyName(State.MenuToggleKey or Enum.KeyCode.Insert)
         table.insert(active, { name = "menu", bind = "[" .. menuKeyStr .. "]", active = true })
+
+        local hashParts = {}
+        for _, kb in ipairs(active) do
+            table.insert(hashParts, kb.name .. ":" .. kb.bind .. ":" .. tostring(kb.active))
+        end
+        local currentHash = table.concat(hashParts, "|")
+        if currentHash == lastActiveHash then
+            return
+        end
+        lastActiveHash = currentHash
 
         for _, child in ipairs(State.KeybindsListContainer:GetChildren()) do
             if child:IsA("Frame") then child:Destroy() end

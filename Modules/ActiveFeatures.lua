@@ -27,7 +27,10 @@ return function(State, Services, Theme)
         end))
     end
 
+    local lastActiveHash = ""
+    
     function module.toggle(enabled)
+        lastActiveHash = ""
         if State.ActiveFeaturesGui then pcall(function() State.ActiveFeaturesGui:Destroy() end); State.ActiveFeaturesGui = nil end
         if not enabled then return end
 
@@ -102,7 +105,7 @@ return function(State, Services, Theme)
     end
 
     function module.update()
-        if not State.ActiveFeaturesGui or not State.ActiveFeaturesGui.Enabled or not State.ActiveFeaturesContainer then return end
+        if not State.ActiveFeaturesGui or not State.ActiveFeaturesContainer then return end
         
         local active = {}
         if State.AimbotEnabled then table.insert(active, "aimbot") end
@@ -113,6 +116,12 @@ return function(State, Services, Theme)
         if State.SilentAimEnabled then table.insert(active, "silent aim") end
         if State.CustomFOVEnabled then table.insert(active, "custom fov") end
         if State.WeaponChamsEnabled then table.insert(active, "weapon chams") end
+
+        local currentHash = table.concat(active, "|")
+        if currentHash == lastActiveHash then
+            return
+        end
+        lastActiveHash = currentHash
 
         for _, child in ipairs(State.ActiveFeaturesContainer:GetChildren()) do
             if child:IsA("Frame") then child:Destroy() end

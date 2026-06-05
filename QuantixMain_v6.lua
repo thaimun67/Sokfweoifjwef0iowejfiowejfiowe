@@ -24,6 +24,16 @@ if State.Aiming == nil then State.Aiming = false end
 if State.EspElements == nil then State.EspElements = {} end
 if State.PlayerConnections == nil then State.PlayerConnections = {} end
 
+-- Reset HUD GUI and Background references to prevent dead/destroyed reference leaks
+State.WatermarkGui = nil
+State.WatermarkBg = nil
+State.KeybindsGui = nil
+State.KeybindsBg = nil
+State.KeybindsListContainer = nil
+State.ActiveFeaturesGui = nil
+State.ActiveFeaturesBg = nil
+State.ActiveFeaturesContainer = nil
+
 -- Services
 local CoreGui = gethui and gethui() or game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -248,9 +258,9 @@ print("[Quantix Loader] UI window created successfully!")
 getgenv().QuantixLibrary = Library
 Library.ToggleKey = State.MenuToggleKey or Enum.KeyCode.Insert
 Library.OnToggle = function(visible)
-    if State.WatermarkGui then pcall(function() State.WatermarkGui.Interactable = visible end) end
-    if State.KeybindsGui then pcall(function() State.KeybindsGui.Interactable = visible end) end
-    if State.ActiveFeaturesGui then pcall(function() State.ActiveFeaturesGui.Interactable = visible end) end
+    if State.WatermarkBg then pcall(function() State.WatermarkBg.Active = visible; State.WatermarkBg.Interactable = visible end) end
+    if State.KeybindsBg then pcall(function() State.KeybindsBg.Active = visible; State.KeybindsBg.Interactable = visible end) end
+    if State.ActiveFeaturesBg then pcall(function() State.ActiveFeaturesBg.Active = visible; State.ActiveFeaturesBg.Interactable = visible end) end
 end
 
 -- // ====== Tab: Main (Legit) ====== \\ --
@@ -398,6 +408,11 @@ local function doUnload()
 
     -- Cleanup weapon/hand chams
     pcall(WeaponChamsModule.cleanup)
+
+    -- Cleanup HUD elements and references
+    if WatermarkModule and WatermarkModule.toggle then pcall(function() WatermarkModule.toggle(false) end) end
+    if KeybindsListModule and KeybindsListModule.toggle then pcall(function() KeybindsListModule.toggle(false) end) end
+    if ActiveFeaturesModule and ActiveFeaturesModule.toggle then pcall(function() ActiveFeaturesModule.toggle(false) end) end
 
     -- Destroy window
     if State.GlobalWindow then

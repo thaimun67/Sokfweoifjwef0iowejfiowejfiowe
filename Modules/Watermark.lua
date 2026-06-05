@@ -108,6 +108,7 @@ return function(State, Services, Theme)
 
         makeHUDElementDraggable(bg)
         State.WatermarkGui = sg
+        State.WatermarkBg = bg
 
         local fpsCount = 0
         local lastTick = tick()

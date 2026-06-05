@@ -17,157 +17,217 @@ return function(State, Services)
     if State.HandChamsOutlineR == nil then State.HandChamsOutlineR = 220; State.HandChamsOutlineG = 180; State.HandChamsOutlineB = 255 end
     if State.WeaponChamsDepth == nil then State.WeaponChamsDepth = false end
 
-    local activeElements = {}
+    local activeHighlights = {}
+    local activeAdornments = {}
 
-    local function isArmName(name)
-        name = string.lower(name)
-        return string.find(name, "arm") or string.find(name, "hand") or string.find(name, "sleeve") or string.find(name, "glove") or string.find(name, "wrist")
-    end
-
-    local function getParts()
-        local character = LocalPlayer.Character
-        local armParts = {}
-        local weaponParts = {}
-
-        -- 1. Scan Camera for ViewModels (standard FPS approach)
+    local function getChamsTargets()
         local camera = workspace.CurrentCamera
-        if camera then
+        if not camera then return nil, {} end
+
+        local viewmodel = camera:FindFirstChild("Viewmodel")
+        if not viewmodel then
             for _, child in ipairs(camera:GetChildren()) do
-                if child:IsA("Model") or child:IsA("Folder") or string.find(string.lower(child.Name), "viewmodel") or string.find(string.lower(child.Name), "vm") then
-                    for _, desc in ipairs(child:GetDescendants()) do
-                        if desc:IsA("BasePart") then
-                            if isArmName(desc.Name) then
-                                table.insert(armParts, desc)
-                            else
-                                table.insert(weaponParts, desc)
-                            end
-                        end
-                    end
+                if string.find(string.lower(child.Name), "viewmodel") or string.find(string.lower(child.Name), "vm") then
+                    viewmodel = child
+                    break
                 end
             end
         end
 
-        -- 2. Scan Character for traditional tools and body parts
-        if character then
-            for _, child in ipairs(character:GetChildren()) do
-                if child:IsA("BasePart") and isArmName(child.Name) then
-                    table.insert(armParts, child)
-                elseif child:IsA("Tool") then
-                    for _, desc in ipairs(child:GetDescendants()) do
-                        if desc:IsA("BasePart") then
-                            table.insert(weaponParts, desc)
-                        end
-                    end
-                elseif child:IsA("Model") and not isArmName(child.Name) then
-                    if string.find(string.lower(child.Name), "gun") or string.find(string.lower(child.Name), "weapon") or child:FindFirstChild("Handle") then
-                        for _, desc in ipairs(child:GetDescendants()) do
-                            if desc:IsA("BasePart") then
-                                table.insert(weaponParts, desc)
-                            end
-                        end
-                    end
+        if not viewmodel then return nil, {} end
+
+        local armsModel = viewmodel:FindFirstChild("Arms", true)
+        local gunModels = {}
+
+        for _, child in ipairs(viewmodel:GetChildren()) do
+            if child:IsA("Model") and child.Name ~= "Arms" then
+                local gunComponents = child:FindFirstChild("GunComponents")
+                local parts = child:FindFirstChild("Parts")
+                if gunComponents then table.insert(gunModels, gunComponents) end
+                if parts then table.insert(gunModels, parts) end
+                if not gunComponents and not parts then
+                    table.insert(gunModels, child)
                 end
             end
         end
 
-        return armParts, weaponParts
+        if not armsModel then
+            for _, desc in ipairs(viewmodel:GetDescendants()) do
+                if desc:IsA("Model") and (string.find(string.lower(desc.Name), "arm") or string.find(string.lower(desc.Name), "hand") or string.find(string.lower(desc.Name), "sleeve")) then
+                    armsModel = desc
+                    break
+                end
+            end
+        end
+
+        return armsModel, gunModels
     end
 
     function module.cleanup()
-        for part, obj in pairs(activeElements) do
-            pcall(function() obj:Destroy() end)
+        for _, hl in pairs(activeHighlights) do
+            pcall(function() hl:Destroy() end)
         end
-        activeElements = {}
+        activeHighlights = {}
+
+        for part, ad in pairs(activeAdornments) do
+            pcall(function() ad:Destroy() end)
+            pcall(function() part.LocalTransparencyModifier = 0 end)
+        end
+        activeAdornments = {}
     end
 
     function module.update()
-        local character = LocalPlayer.Character
-        if not character and not workspace.CurrentCamera then
+        local camera = workspace.CurrentCamera
+        if not camera then
             module.cleanup()
             return
         end
 
-        local armParts, weaponParts = getParts()
-        local partsSeenThisFrame = {}
+        local armsModel, gunModels = getChamsTargets()
+        
+        local mode = State.WeaponChamsMode
+        local depth = State.WeaponChamsDepth
+        
+        local currentHighlights = {}
+        local currentAdornments = {}
 
-        local function stylePart(part, isArm)
-            partsSeenThisFrame[part] = true
-            
-            local enabled = isArm and State.HandChamsEnabled or State.WeaponChamsEnabled
-            if not enabled then
-                if activeElements[part] then
-                    pcall(function() activeElements[part]:Destroy() end)
-                    activeElements[part] = nil
+        local function applyHighlight(model, isArm)
+            if not model then return end
+
+            local hl = activeHighlights[model]
+            if isArm then
+                if State.HandChamsEnabled then
+                    if not hl or not hl.Parent then
+                        hl = Instance.new("Highlight")
+                        hl.Name = "QuantixHandCham"
+                        hl.Parent = model
+                        activeHighlights[model] = hl
+                    end
+                    hl.Adornee = model
+                    hl.FillColor = Color3.fromRGB(State.HandChamsFillR, State.HandChamsFillG, State.HandChamsFillB)
+                    hl.OutlineColor = Color3.fromRGB(State.HandChamsOutlineR, State.HandChamsOutlineG, State.HandChamsOutlineB)
+                    hl.DepthMode = depth and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+                    if mode == 1 then
+                        hl.FillTransparency = State.HandChamsFillTrans
+                        hl.OutlineTransparency = State.HandChamsOutlineTrans
+                    else -- mode == 3 (Outline)
+                        hl.FillTransparency = 1
+                        hl.OutlineTransparency = State.HandChamsOutlineTrans
+                    end
+                    hl.Enabled = true
+                    currentHighlights[model] = hl
+                elseif State.WeaponChamsEnabled then
+                    -- Dummy transparent highlight to override weapon highlight on arms
+                    if not hl or not hl.Parent then
+                        hl = Instance.new("Highlight")
+                        hl.Name = "QuantixHandCham"
+                        hl.Parent = model
+                        activeHighlights[model] = hl
+                    end
+                    hl.Adornee = model
+                    hl.FillColor = Color3.fromRGB(0, 0, 0)
+                    hl.OutlineColor = Color3.fromRGB(0, 0, 0)
+                    hl.FillTransparency = 1
+                    hl.OutlineTransparency = 1
+                    hl.DepthMode = Enum.HighlightDepthMode.Occluded
+                    hl.Enabled = true
+                    currentHighlights[model] = hl
                 end
-                return
+            else
+                if State.WeaponChamsEnabled then
+                    if not hl or not hl.Parent then
+                        hl = Instance.new("Highlight")
+                        hl.Name = "QuantixWeaponCham"
+                        hl.Parent = model
+                        activeHighlights[model] = hl
+                    end
+                    hl.Adornee = model
+                    hl.FillColor = Color3.fromRGB(State.WeaponChamsFillR, State.WeaponChamsFillG, State.WeaponChamsFillB)
+                    hl.OutlineColor = Color3.fromRGB(State.WeaponChamsOutlineR, State.WeaponChamsOutlineG, State.WeaponChamsOutlineB)
+                    hl.DepthMode = depth and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+                    if mode == 1 then
+                        hl.FillTransparency = State.WeaponChamsFillTrans
+                        hl.OutlineTransparency = State.WeaponChamsOutlineTrans
+                    else -- mode == 3 (Outline)
+                        hl.FillTransparency = 1
+                        hl.OutlineTransparency = State.WeaponChamsOutlineTrans
+                    end
+                    hl.Enabled = true
+                    currentHighlights[model] = hl
+                end
             end
+        end
+
+        local function applyWireframe(model, isArm)
+            local enabled = isArm and State.HandChamsEnabled or State.WeaponChamsEnabled
+            if not enabled or not model then return end
 
             local fillColor = isArm and Color3.fromRGB(State.HandChamsFillR, State.HandChamsFillG, State.HandChamsFillB) or Color3.fromRGB(State.WeaponChamsFillR, State.WeaponChamsFillG, State.WeaponChamsFillB)
-            local outlineColor = isArm and Color3.fromRGB(State.HandChamsOutlineR, State.HandChamsOutlineG, State.HandChamsOutlineB) or Color3.fromRGB(State.WeaponChamsOutlineR, State.WeaponChamsOutlineG, State.WeaponChamsOutlineB)
             local fillTrans = isArm and State.HandChamsFillTrans or State.WeaponChamsFillTrans
-            local outlineTrans = isArm and State.HandChamsOutlineTrans or State.WeaponChamsOutlineTrans
-            local depth = State.WeaponChamsDepth
-            local mode = State.WeaponChamsMode
 
-            local existing = activeElements[part]
-            
-            if mode == 2 then -- Wireframe
-                if existing and existing:IsA("Highlight") then
-                    pcall(function() existing:Destroy() end)
-                    existing = nil
+            for _, part in ipairs(model:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    if not isArm and armsModel and part:IsDescendantOf(armsModel) then
+                        continue
+                    end
+
+                    -- Make original part mesh invisible so wireframe is visible
+                    pcall(function() part.LocalTransparencyModifier = 1 end)
+
+                    local ad = activeAdornments[part]
+                    if not ad or not ad.Parent then
+                        ad = Instance.new("WireframeHandleAdornment")
+                        ad.Name = "QuantixWireframe"
+                        ad.Parent = part
+                        activeAdornments[part] = ad
+                    end
+                    ad.Adornee = part
+                    ad.Color3 = fillColor
+                    ad.AlwaysOnTop = depth
+                    ad.Transparency = fillTrans
+                    currentAdornments[part] = ad
                 end
-                
-                local wf = existing
-                if not wf or not wf.Parent then
-                    wf = Instance.new("WireframeHandleAdornment")
-                    wf.Name = "QuantixWireframe"
-                    wf.Parent = part
-                    activeElements[part] = wf
-                end
-                wf.Adornee = part
-                wf.Color3 = fillColor
-                wf.AlwaysOnTop = depth
-                wf.Transparency = fillTrans
-            else -- Normal or Outline
-                if existing and existing:IsA("WireframeHandleAdornment") then
-                    pcall(function() existing:Destroy() end)
-                    existing = nil
-                end
-                
-                local hl = existing
-                if not hl or not hl.Parent then
-                    hl = Instance.new("Highlight")
-                    hl.Name = "QuantixCham"
-                    hl.Parent = part
-                    activeElements[part] = hl
-                end
-                hl.Adornee = part
-                hl.FillColor = fillColor
-                hl.OutlineColor = outlineColor
-                hl.DepthMode = depth and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
-                
-                if mode == 1 then -- Normal
-                    hl.FillTransparency = fillTrans
-                    hl.OutlineTransparency = outlineTrans
-                else -- Outline Only (mode == 3)
-                    hl.FillTransparency = 1
-                    hl.OutlineTransparency = outlineTrans
-                end
-                hl.Enabled = true
             end
         end
 
-        for _, part in ipairs(weaponParts) do
-            pcall(stylePart, part, false)
-        end
-        for _, part in ipairs(armParts) do
-            pcall(stylePart, part, true)
-        end
+        if mode == 2 then -- Wireframe mode
+            for m, hl in pairs(activeHighlights) do
+                pcall(function() hl:Destroy() end)
+            end
+            activeHighlights = {}
 
-        for part, obj in pairs(activeElements) do
-            if not partsSeenThisFrame[part] then
-                pcall(function() obj:Destroy() end)
-                activeElements[part] = nil
+            if armsModel then pcall(applyWireframe, armsModel, true) end
+            for _, gunModel in ipairs(gunModels) do
+                pcall(applyWireframe, gunModel, false)
+            end
+            
+            -- Cleanup stale wireframes and restore their transparency
+            for p, ad in pairs(activeAdornments) do
+                if not currentAdornments[p] then
+                    pcall(function() ad:Destroy() end)
+                    pcall(function() p.LocalTransparencyModifier = 0 end)
+                    activeAdornments[p] = nil
+                end
+            end
+        else -- Normal or Outline mode
+            -- Cleanup all wireframe adornments and restore original transparency
+            for p, ad in pairs(activeAdornments) do
+                pcall(function() ad:Destroy() end)
+                pcall(function() p.LocalTransparencyModifier = 0 end)
+            end
+            activeAdornments = {}
+
+            if armsModel then pcall(applyHighlight, armsModel, true) end
+            for _, gunModel in ipairs(gunModels) do
+                pcall(applyHighlight, gunModel, false)
+            end
+            
+            -- Cleanup stale highlights
+            for m, hl in pairs(activeHighlights) do
+                if not currentHighlights[m] then
+                    pcall(function() hl:Destroy() end)
+                    activeHighlights[m] = nil
+                end
             end
         end
     end
