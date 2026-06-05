@@ -35,8 +35,20 @@ Library.Theme = Theme
 local function tween(object, time, propertyTable)
     local tweenInfo = TweenInfo.new(time or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local t = TweenService:Create(object, tweenInfo, propertyTable)
-    t:Play()
+    pcall(function() t:Play() end)
     return t
+end
+
+local SoundService = game:GetService("SoundService")
+local function playSound(soundId, volume)
+    pcall(function()
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://" .. tostring(soundId):gsub("rbxassetid://", "")
+        sound.Volume = volume or 0.3
+        sound.PlayOnRemove = true
+        sound.Parent = SoundService
+        sound:Destroy()
+    end)
 end
 
 -- Accent Theme Dynamic Repainter
@@ -311,6 +323,11 @@ function Library:CreateWindow(options)
     MainCorner.CornerRadius = UDim.new(0, 10)
     MainCorner.Parent = MainFrame
 
+    local MainStroke = Instance.new("UIStroke")
+    MainStroke.Thickness = 1.5
+    MainStroke.Color = Theme.DarkOutline
+    MainStroke.Parent = MainFrame
+
     -- Sync glow position and visibility
     local function updateGlowPosition()
         GlowFrame.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset - 2, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset - 2)
@@ -362,12 +379,19 @@ function Library:CreateWindow(options)
     SidebarCut.BorderSizePixel = 0
     SidebarCut.Parent = Sidebar
 
+    local SidebarDivider = Instance.new("Frame")
+    SidebarDivider.Size = UDim2.new(0, 1, 1, 0)
+    SidebarDivider.Position = UDim2.new(1, 0, 0, 0)
+    SidebarDivider.BackgroundColor3 = Theme.DarkOutline
+    SidebarDivider.BorderSizePixel = 0
+    SidebarDivider.Parent = Sidebar
+
     -- Logo
     local LogoLabel = Instance.new("TextLabel")
     LogoLabel.Size = UDim2.new(1, 0, 0, 40)
     LogoLabel.Position = UDim2.new(0, 0, 0, 15)
     LogoLabel.BackgroundTransparency = 1
-    LogoLabel.Text = "EVICTED"
+    LogoLabel.Text = "QUANTIX"
     LogoLabel.TextColor3 = Theme.AccentStart
     LogoLabel.Font = Enum.Font.GothamBold
     LogoLabel.TextSize = 18
@@ -456,12 +480,25 @@ function Library:CreateWindow(options)
         TabButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         TabButton.BackgroundTransparency = 1
         TabButton.Size = UDim2.new(1, 0, 0, 26)
-        TabButton.Text = "  " .. tabName
+        
+        local tabIcons = {
+            main = "🎯",
+            visuals = "👁️",
+            rage = "⚡",
+            settings = "⚙️",
+            changelog = "📝"
+        }
+        local icon = tabIcons[tabName:lower()] or "📁"
+        TabButton.Text = icon .. "  " .. tabName
         TabButton.TextColor3 = Theme.TextDark
         TabButton.Font = Theme.Font
         TabButton.TextSize = Theme.TextSize
         TabButton.TextXAlignment = Enum.TextXAlignment.Left
         TabButton.Parent = TabContainer
+
+        local TabPadding = Instance.new("UIPadding")
+        TabPadding.PaddingLeft = UDim.new(0, 8)
+        TabPadding.Parent = TabButton
 
         local TabBtnCorner = Instance.new("UICorner")
         TabBtnCorner.CornerRadius = UDim.new(0, 5)
@@ -502,24 +539,30 @@ function Library:CreateWindow(options)
                 TabButton.TextColor3 = Theme.Text
                 TabButton.BackgroundTransparency = 0.85
                 TabButton.BackgroundColor3 = Theme.AccentStart
+                tween(TabPadding, 0.15, { PaddingLeft = UDim.new(0, 14) })
             else
                 TabButton.TextColor3 = Theme.TextDark
                 TabButton.BackgroundTransparency = 1
+                tween(TabPadding, 0.15, { PaddingLeft = UDim.new(0, 8) })
             end
         end
 
         TabButton.MouseEnter:Connect(function()
+            playSound(6895079683, 0.25)
             if Window.CurrentTab ~= tabName then
                 tween(TabButton, 0.15, { TextColor3 = Theme.Text })
+                tween(TabPadding, 0.15, { PaddingLeft = UDim.new(0, 12) })
             end
         end)
         TabButton.MouseLeave:Connect(function()
             if Window.CurrentTab ~= tabName then
                 tween(TabButton, 0.15, { TextColor3 = Theme.TextDark })
+                tween(TabPadding, 0.15, { PaddingLeft = UDim.new(0, 8) })
             end
         end)
 
         TabButton.MouseButton1Click:Connect(function()
+            playSound(8704257544, 0.4)
             for _, tab in pairs(Window.Tabs) do
                 tab.Content.Visible = false
                 tab.UpdateVisuals(false)
@@ -537,7 +580,7 @@ function Library:CreateWindow(options)
             updateTabButtonVisuals(true)
         end
 
-        table.insert(Window.Tabs, { Button = TabButton, Content = TabContent, UpdateVisuals = updateTabButtonVisuals })
+        table.insert(Window.Tabs, { Button = TabButton, Content = TabContent, UpdateVisuals = updateTabButtonVisuals, TabPadding = TabPadding })
         
         local Tab = { SideToggle = true }
         
@@ -554,6 +597,12 @@ function Library:CreateWindow(options)
             local GroupCorner = Instance.new("UICorner")
             GroupCorner.CornerRadius = UDim.new(0, 6)
             GroupCorner.Parent = Groupbox
+
+            local GroupStroke = Instance.new("UIStroke")
+            GroupStroke.Thickness = 1
+            GroupStroke.Color = Theme.DarkOutline
+            GroupStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+            GroupStroke.Parent = Groupbox
 
             local GroupTitle = Instance.new("TextLabel")
             GroupTitle.Size = UDim2.new(1, -16, 0, 24)
@@ -644,7 +693,30 @@ function Library:CreateWindow(options)
                 Padding.PaddingLeft = UDim.new(0, 6)
                 Padding.Parent = BoxInput
 
+                local BoxStroke = Instance.new("UIStroke")
+                BoxStroke.Thickness = 1
+                BoxStroke.Color = Theme.DarkOutline
+                BoxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                BoxStroke.Parent = BoxInput
+
+                BoxInput.MouseEnter:Connect(function()
+                    playSound(6895079683, 0.2)
+                    tween(BoxStroke, 0.15, { Color = Theme.LightOutline })
+                    tween(Label, 0.15, { TextColor3 = Theme.Text })
+                end)
+                BoxInput.MouseLeave:Connect(function()
+                    if not BoxInput:IsFocused() then
+                        tween(BoxStroke, 0.15, { Color = Theme.DarkOutline })
+                        tween(Label, 0.15, { TextColor3 = Theme.TextDark })
+                    end
+                end)
+                BoxInput.Focused:Connect(function()
+                    tween(BoxStroke, 0.15, { Color = Theme.AccentStart })
+                    tween(Label, 0.15, { TextColor3 = Theme.Text })
+                end)
                 BoxInput.FocusLost:Connect(function()
+                    tween(BoxStroke, 0.15, { Color = Theme.DarkOutline })
+                    tween(Label, 0.15, { TextColor3 = Theme.TextDark })
                     if options.Callback then options.Callback(BoxInput.Text) end
                 end)
 
@@ -678,14 +750,24 @@ function Library:CreateWindow(options)
                 BtnCorner.CornerRadius = UDim.new(0, 4)
                 BtnCorner.Parent = Button
 
+                local BtnStroke = Instance.new("UIStroke")
+                BtnStroke.Thickness = 1
+                BtnStroke.Color = Theme.DarkOutline
+                BtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                BtnStroke.Parent = Button
+
                 Button.MouseEnter:Connect(function()
+                    playSound(6895079683, 0.25)
                     tween(Button, 0.15, { BackgroundColor3 = Theme.LightOutline, TextColor3 = Theme.AccentEnd })
+                    tween(BtnStroke, 0.15, { Color = Theme.AccentStart })
                 end)
                 Button.MouseLeave:Connect(function()
                     tween(Button, 0.15, { BackgroundColor3 = Theme.Sidebar, TextColor3 = Theme.Text })
+                    tween(BtnStroke, 0.15, { Color = Theme.DarkOutline })
                 end)
 
                 Button.MouseButton1Click:Connect(function()
+                    playSound(8704257544, 0.4)
                     if options.Callback then options.Callback() end
                 end)
             end
@@ -732,21 +814,40 @@ function Library:CreateWindow(options)
                 KnobCorner.CornerRadius = UDim.new(1, 0)
                 KnobCorner.Parent = ToggleKnob
 
+                local TrackStroke = Instance.new("UIStroke")
+                TrackStroke.Thickness = 1
+                TrackStroke.Color = Theme.DarkOutline
+                TrackStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                TrackStroke.Parent = ToggleTrack
+
                 local toggled = options.Default or false
 
                 local function Update()
                     local targetColor = toggled and Theme.AccentStart or Theme.ElementBackground
                     local targetKnobPos = toggled and UDim2.new(1, -12, 0.5, -5) or UDim2.new(0, 2, 0.5, -5)
                     local targetTextColor = toggled and Theme.Text or Theme.TextDark
+                    local targetStrokeColor = toggled and Theme.AccentStart or Theme.DarkOutline
                     
                     tween(ToggleTrack, 0.15, { BackgroundColor3 = targetColor })
                     tween(ToggleKnob, 0.15, { Position = targetKnobPos })
                     tween(ToggleLabel, 0.15, { TextColor3 = targetTextColor })
+                    tween(TrackStroke, 0.15, { Color = targetStrokeColor })
                     
                     if options.Callback then options.Callback(toggled) end
                 end
 
+                ToggleTrack.MouseEnter:Connect(function()
+                    playSound(6895079683, 0.2)
+                    tween(TrackStroke, 0.15, { Color = Theme.LightOutline })
+                    tween(ToggleLabel, 0.15, { TextColor3 = Theme.Text })
+                end)
+                ToggleTrack.MouseLeave:Connect(function()
+                    tween(TrackStroke, 0.15, { Color = toggled and Theme.AccentStart or Theme.DarkOutline })
+                    tween(ToggleLabel, 0.15, { TextColor3 = toggled and Theme.Text or Theme.TextDark })
+                end)
+
                 ToggleTrack.MouseButton1Click:Connect(function()
+                    playSound(8704257544, 0.45)
                     toggled = not toggled
                     Update()
                 end)
@@ -790,7 +891,7 @@ function Library:CreateWindow(options)
                 ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
                 ValueLabel.Parent = SliderFrame
 
-                -- Thin 3px slider progress track
+                -- Thin 4px slider progress track
                 local SliderBack = Instance.new("TextButton")
                 SliderBack.Size = UDim2.new(1, 0, 0, 4)
                 SliderBack.Position = UDim2.new(0, 0, 0, 20)
@@ -826,6 +927,7 @@ function Library:CreateWindow(options)
                 local max = options.Max or 100
                 local current = options.Default or min
                 local sliding = false
+                local lastVal = current
 
                 local function UpdateVisuals()
                     local percent = math.clamp((current - min) / (max - min), 0, 1)
@@ -837,21 +939,63 @@ function Library:CreateWindow(options)
                     local percent = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
                     current = math.floor(min + (max - min) * percent)
                     UpdateVisuals()
+                    if current ~= lastVal then
+                        lastVal = current
+                        playSound(12222005, 0.12) -- subtle drag tick sound
+                        tween(ValueLabel, 0.08, { TextSize = Theme.TextSize + 2, TextColor3 = Theme.AccentStart })
+                        task.delay(0.08, function()
+                            if not sliding then
+                                tween(ValueLabel, 0.15, { TextSize = Theme.TextSize, TextColor3 = Theme.Text })
+                            end
+                        end)
+                    end
                     if options.Callback then options.Callback(current) end
                 end
+
+                local function tweenSliderHeight(height)
+                    tween(SliderBack, 0.12, { Size = UDim2.new(1, 0, 0, height), Position = UDim2.new(0, 0, 0, 22 - (height / 2)) })
+                end
+
+                SliderBack.MouseEnter:Connect(function()
+                    playSound(6895079683, 0.2)
+                    tweenSliderHeight(6)
+                    tween(SliderLabel, 0.15, { TextColor3 = Theme.Text })
+                end)
+                SliderBack.MouseLeave:Connect(function()
+                    if not sliding then
+                        tweenSliderHeight(4)
+                        tween(SliderLabel, 0.15, { TextColor3 = Theme.TextDark })
+                    end
+                end)
 
                 SliderBack.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         sliding = true
+                        tweenSliderHeight(6)
+                        tween(ValueLabel, 0.15, { TextColor3 = Theme.AccentStart })
                         UpdateInput(input)
                     end
                 end)
                 SliderBack.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        sliding = false
+                        tweenSliderHeight(4)
+                        tween(ValueLabel, 0.15, { TextColor3 = Theme.Text, TextSize = Theme.TextSize })
+                    end
                 end)
                 table.insert(Library.Connections, UserInputService.InputChanged:Connect(function(input)
                     if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
                         UpdateInput(input)
+                    end
+                end))
+
+                -- Global release handler to clean up stuck sliding
+                table.insert(Library.Connections, UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 and sliding then
+                        sliding = false
+                        tweenSliderHeight(4)
+                        tween(SliderLabel, 0.15, { TextColor3 = Theme.TextDark })
+                        tween(ValueLabel, 0.15, { TextColor3 = Theme.Text, TextSize = Theme.TextSize })
                     end
                 end))
 
@@ -900,14 +1044,18 @@ function Library:CreateWindow(options)
                 local listening = false
 
                 KeybindButton.MouseEnter:Connect(function()
+                    playSound(6895079683, 0.2)
                     tween(KeybindButton, 0.15, { TextColor3 = Theme.AccentStart })
+                    tween(KeybindLabel, 0.15, { TextColor3 = Theme.Text })
                 end)
                 KeybindButton.MouseLeave:Connect(function()
                     tween(KeybindButton, 0.15, { TextColor3 = Theme.Text })
+                    tween(KeybindLabel, 0.15, { TextColor3 = Theme.TextDark })
                 end)
 
                 KeybindButton.MouseButton1Click:Connect(function()
                     listening = true
+                    playSound(8704257544, 0.4)
                     KeybindButton.Text = "..."
                 end)
 
@@ -931,6 +1079,7 @@ function Library:CreateWindow(options)
                             currentKey = newKey
                             KeybindButton.Text = newName
                             listening = false
+                            playSound(8704257544, 0.5)
                             if options.Callback then options.Callback(currentKey) end
                         end
                     end
@@ -980,6 +1129,12 @@ function Library:CreateWindow(options)
                 local PreviewCorner = Instance.new("UICorner")
                 PreviewCorner.CornerRadius = UDim.new(1, 0) -- perfectly circular preview badge
                 PreviewCorner.Parent = PreviewButton
+
+                local PreviewStroke = Instance.new("UIStroke")
+                PreviewStroke.Thickness = 1
+                PreviewStroke.Color = Theme.DarkOutline
+                PreviewStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                PreviewStroke.Parent = PreviewButton
 
                 -- Dropdown Drawer Frame
                 local Drawer = Instance.new("Frame")
@@ -1123,6 +1278,9 @@ function Library:CreateWindow(options)
                     activeColor = Color3.fromHSV(hue, sat, val)
                     PreviewButton.BackgroundColor3 = activeColor
                     CurrentColorBox.BackgroundColor3 = activeColor
+                    if math.floor(hue * 100) ~= math.floor(Indicator.Position.X.Scale * 100) then
+                        playSound(12222005, 0.12)
+                    end
                     if options.Callback then
                         options.Callback(activeColor)
                     end
@@ -1149,12 +1307,17 @@ function Library:CreateWindow(options)
                 local function Toggle(state)
                     if state == toggled then return end
                     toggled = state
+                    playSound(8704257544, 0.4)
                     
                     local targetDrawerHeight = toggled and 135 or 0
                     local targetFrameHeight = toggled and 151 or 16
                     
                     if toggled then
                         Drawer.Visible = true
+                        tween(PreviewStroke, 0.15, { Color = Theme.AccentStart })
+                    else
+                        tween(PreviewStroke, 0.15, { Color = Theme.DarkOutline })
+                        tween(ColorpickerLabel, 0.15, { TextColor3 = Theme.TextDark })
                     end
                     
                     tween(Drawer, 0.15, { Size = UDim2.new(1, 0, 0, targetDrawerHeight) })
@@ -1166,6 +1329,18 @@ function Library:CreateWindow(options)
                         end)
                     end
                 end
+
+                PreviewButton.MouseEnter:Connect(function()
+                    playSound(6895079683, 0.2)
+                    tween(PreviewStroke, 0.15, { Color = Theme.AccentStart })
+                    tween(ColorpickerLabel, 0.15, { TextColor3 = Theme.Text })
+                end)
+                PreviewButton.MouseLeave:Connect(function()
+                    if not toggled then
+                        tween(PreviewStroke, 0.15, { Color = Theme.DarkOutline })
+                        tween(ColorpickerLabel, 0.15, { TextColor3 = Theme.TextDark })
+                    end
+                end)
 
                 PreviewButton.MouseButton1Click:Connect(function()
                     Toggle(not toggled)
@@ -1218,6 +1393,12 @@ function Library:CreateWindow(options)
                 SelCorner.CornerRadius = UDim.new(0, 4)
                 SelCorner.Parent = SelectorButton
 
+                local SelectorStroke = Instance.new("UIStroke")
+                SelectorStroke.Thickness = 1
+                SelectorStroke.Color = Theme.DarkOutline
+                SelectorStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                SelectorStroke.Parent = SelectorButton
+
                 local ArrowLabel = Instance.new("TextLabel")
                 ArrowLabel.Size = UDim2.new(0, 15, 1, 0)
                 ArrowLabel.Position = UDim2.new(1, -18, 0, 0)
@@ -1258,6 +1439,10 @@ function Library:CreateWindow(options)
                     if options.Callback then options.Callback(val) end
                     
                     toggled = false
+                    playSound(8704257544, 0.35)
+                    tween(ArrowLabel, 0.15, { Rotation = 0 })
+                    tween(SelectorStroke, 0.15, { Color = Theme.DarkOutline })
+                    tween(DropdownLabel, 0.15, { TextColor3 = Theme.TextDark })
                     tween(Drawer, 0.15, { Size = UDim2.new(1, 0, 0, 0) })
                     tween(DropdownFrame, 0.15, { Size = UDim2.new(1, 0, 0, 36) })
                     task.delay(0.15, function()
@@ -1280,6 +1465,7 @@ function Library:CreateWindow(options)
                     ItemBtn.Parent = Drawer
 
                     ItemBtn.MouseEnter:Connect(function()
+                        playSound(6895079683, 0.15)
                         tween(ItemBtn, 0.15, { BackgroundColor3 = Theme.LightOutline, TextColor3 = Theme.AccentEnd })
                     end)
                     ItemBtn.MouseLeave:Connect(function()
@@ -1293,15 +1479,22 @@ function Library:CreateWindow(options)
                 local function Toggle(state)
                     if state == toggled then return end
                     toggled = state
+                    playSound(8704257544, 0.4)
                     
                     local maxItemsVisible = math.min(6, #options.List)
                     local targetDrawerHeight = toggled and (maxItemsVisible * 18) or 0
                     local targetFrameHeight = toggled and (36 + targetDrawerHeight + 4) or 36
                     
+                    tween(ArrowLabel, 0.15, { Rotation = toggled and 180 or 0 })
+
                     if toggled then
                         Drawer.Size = UDim2.new(1, 0, 0, 0)
                         Drawer.CanvasSize = UDim2.new(0, 0, 0, #options.List * 18)
                         Drawer.Visible = true
+                        tween(SelectorStroke, 0.15, { Color = Theme.AccentStart })
+                    else
+                        tween(SelectorStroke, 0.15, { Color = Theme.DarkOutline })
+                        tween(DropdownLabel, 0.15, { TextColor3 = Theme.TextDark })
                     end
                     
                     tween(Drawer, 0.15, { Size = UDim2.new(1, 0, 0, targetDrawerHeight) })
@@ -1315,10 +1508,17 @@ function Library:CreateWindow(options)
                 end
 
                 SelectorButton.MouseEnter:Connect(function()
+                    playSound(6895079683, 0.2)
                     tween(SelectorButton, 0.15, { BackgroundColor3 = Theme.LightOutline })
+                    tween(SelectorStroke, 0.15, { Color = Theme.AccentStart })
+                    tween(DropdownLabel, 0.15, { TextColor3 = Theme.Text })
                 end)
                 SelectorButton.MouseLeave:Connect(function()
                     tween(SelectorButton, 0.15, { BackgroundColor3 = Theme.Sidebar })
+                    if not toggled then
+                        tween(SelectorStroke, 0.15, { Color = Theme.DarkOutline })
+                        tween(DropdownLabel, 0.15, { TextColor3 = Theme.TextDark })
+                    end
                 end)
 
                 SelectorButton.MouseButton1Click:Connect(function()

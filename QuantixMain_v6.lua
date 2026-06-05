@@ -431,12 +431,12 @@ InfoGroup:CreateLabel({ Text = "- All 5 tabs now load reliably" })
 -- Make main tab active by default
 Window.CurrentTab = "main"
 for _, tab in pairs(Window.Tabs) do
-    if tab.Button.Text == "main" then
+    if tab.Button.Text:find("main") then
         tab.Content.Visible = true
-        tab.Button.TextColor3 = Library.Theme.Text
-        tab.Button.BorderColor3 = Library.Theme.LightOutline
+        tab.UpdateVisuals(true)
     else
         tab.Content.Visible = false
+        tab.UpdateVisuals(false)
     end
 end
 
