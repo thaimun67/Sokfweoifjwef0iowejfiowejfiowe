@@ -150,7 +150,7 @@ return function(State, Services, Theme)
             row.Parent = State.KeybindsListContainer
 
             local nameLbl = Instance.new("TextLabel")
-            nameLbl.Size = UDim2.new(0.6, -10, 1, 0)
+            nameLbl.Size = UDim2.new(1, -70, 1, 0)
             nameLbl.Position = UDim2.new(0, 10, 0, 0)
             nameLbl.BackgroundTransparency = 1
             nameLbl.Font = Theme.Font
@@ -161,8 +161,8 @@ return function(State, Services, Theme)
             nameLbl.Parent = row
 
             local bindLbl = Instance.new("TextLabel")
-            bindLbl.Size = UDim2.new(0.4, -10, 1, 0)
-            bindLbl.Position = UDim2.new(0.6, 0, 0, 0)
+            bindLbl.Size = UDim2.new(0, 50, 1, 0)
+            bindLbl.Position = UDim2.new(1, -60, 0, 0)
             bindLbl.BackgroundTransparency = 1
             bindLbl.Font = Theme.Font
             bindLbl.TextSize = Theme.TextSize - 3
@@ -172,7 +172,24 @@ return function(State, Services, Theme)
             bindLbl.Parent = row
         end
 
-        State.KeybindsBg.Size = UDim2.new(0, 150, 0, 28 + (#active * 18))
+        local TextService = game:GetService("TextService")
+        local maxWidth = 130
+        for _, kb in ipairs(active) do
+            local nameSize = TextService:GetTextSize(kb.name, Theme.TextSize - 3, Theme.Font, Vector2.new(1000, 20))
+            local bindSize = TextService:GetTextSize(kb.bind, Theme.TextSize - 3, Theme.Font, Vector2.new(1000, 20))
+            local requiredWidth = nameSize.X + bindSize.X + 30
+            if requiredWidth > maxWidth then
+                maxWidth = requiredWidth
+            end
+        end
+
+        local titleSize = TextService:GetTextSize("keybinds", Theme.TextSize - 1, Theme.Font, Vector2.new(1000, 20))
+        local requiredTitleWidth = titleSize.X + 20
+        if requiredTitleWidth > maxWidth then
+            maxWidth = requiredTitleWidth
+        end
+
+        State.KeybindsBg.Size = UDim2.new(0, math.max(130, math.ceil(maxWidth)), 0, 28 + (#active * 18))
     end
     
     return module

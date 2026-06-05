@@ -157,7 +157,23 @@ return function(State, Services, Theme)
             lbl.Parent = row
         end
 
-        State.ActiveFeaturesBg.Size = UDim2.new(0, 150, 0, 28 + (#active * 18))
+        local TextService = game:GetService("TextService")
+        local maxWidth = 130
+        for _, text in ipairs(active) do
+            local size = TextService:GetTextSize(text, Theme.TextSize - 3, Theme.Font, Vector2.new(1000, 20))
+            local requiredWidth = size.X + 30
+            if requiredWidth > maxWidth then
+                maxWidth = requiredWidth
+            end
+        end
+
+        local titleSize = TextService:GetTextSize("active features", Theme.TextSize - 1, Theme.Font, Vector2.new(1000, 20))
+        local requiredTitleWidth = titleSize.X + 20
+        if requiredTitleWidth > maxWidth then
+            maxWidth = requiredTitleWidth
+        end
+
+        State.ActiveFeaturesBg.Size = UDim2.new(0, math.max(130, math.ceil(maxWidth)), 0, 28 + (#active * 18))
     end
     
     return module
