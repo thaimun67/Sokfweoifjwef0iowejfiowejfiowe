@@ -3,10 +3,24 @@ local function LoadModule(name)
     local url = BASE_URL .. name .. ".lua?t=" .. tostring(tick())
     local ok, src = pcall(function() return game:HttpGet(url) end)
     if ok and src then
-        local fn = loadstring(src)
-        if fn then return fn() end
+        local fn, err = loadstring(src)
+        if fn then
+            local runOk, factory = pcall(fn)
+            if runOk and type(factory) == "function" then
+                return factory
+            end
+        else
+            warn("[Quantix HookManager] Failed to compile sub-module " .. name .. ": " .. tostring(err))
+        end
+    else
+        warn("[Quantix HookManager] Failed to fetch sub-module " .. name)
     end
-    return nil
+    -- Fallback function returning a dummy module
+    return function()
+        return setmetatable({}, {
+            __index = function() return function() end end
+        })
+    end
 end
 
 return function(State, Services)

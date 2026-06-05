@@ -25,7 +25,7 @@ if State.EspElements == nil then State.EspElements = {} end
 if State.PlayerConnections == nil then State.PlayerConnections = {} end
 
 -- Services
-local CoreGui = game:GetService("CoreGui")
+local CoreGui = gethui and gethui() or game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -126,20 +126,40 @@ local BASE_URL = "https://raw.githubusercontent.com/thaimun67/Sokfweoifjwef0iowe
 
 local function LoadModule(name)
     local url = BASE_URL .. name .. ".lua?t=" .. tostring(tick())
+    print("[Quantix Loader] Fetching and compiling: " .. name)
     local ok, result = pcall(function()
         local src = game:HttpGet(url)
         local fn, err = loadstring(src)
         if not fn then
-            warn("[Quantix] Failed to compile " .. name .. ": " .. tostring(err))
-            return nil
+            error("Compile error: " .. tostring(err))
         end
         return fn()
     end)
+    
     if not ok then
-        warn("[Quantix] Failed to load " .. name .. ": " .. tostring(result))
-        return nil
+        warn("[Quantix] Failed to load/compile " .. name .. ": " .. tostring(result))
+        return function()
+            return setmetatable({}, {
+                __index = function() return function() end end
+            })
+        end
     end
-    return result
+    
+    return function(...)
+        local args = {...}
+        print("[Quantix Loader] Initializing: " .. name)
+        local runOk, module = pcall(function()
+            return result(unpack(args))
+        end)
+        if not runOk then
+            warn("[Quantix] Failed to initialize " .. name .. ": " .. tostring(module))
+            return setmetatable({}, {
+                __index = function() return function() end end
+            })
+        end
+        print("[Quantix Loader] Initialized: " .. name .. " successfully!")
+        return module
+    end
 end
 
 -- Load modules
@@ -158,12 +178,15 @@ local AimbotModule = LoadModule("Aimbot")(State, Services, GameStateModule)
 local WeaponChamsModule = LoadModule("WeaponChams")(State, Services)
 
 -- Cleanup old ESP elements from previous runs
-ESPModule.cleanupOldESP()
+print("[Quantix Loader] Cleaning up old ESP elements...")
+pcall(function() ESPModule.cleanupOldESP() end)
 
 -- Start background recoil/camera scanner
-RecoilModule.startScanner()
+print("[Quantix Loader] Starting recoil/camera scanner...")
+pcall(function() RecoilModule.startScanner() end)
 
 -- Start bullet traces and gun mod hooks
+print("[Quantix Loader] Starting hooks...")
 pcall(function() BulletTracesModule.startBulletTracesHook() end)
 pcall(function() HookManagerModule.startHook() end)
 
@@ -186,15 +209,15 @@ end))
 
 -- Unified RenderStepped loop
 table.insert(State.Connections, RunService.RenderStepped:Connect(function()
-    pcall(CustomFOVModule.update)
-    RecoilModule.applyNoRecoil()
-    pcall(AimbotModule.update)
-    pcall(FOVCirclesModule.update)
-    pcall(CustomSkyboxModule.update)
-    pcall(ESPModule.updateESPObjects)
-    pcall(KeybindsListModule.update)
-    pcall(ActiveFeaturesModule.update)
-    pcall(WeaponChamsModule.update)
+    pcall(function() CustomFOVModule.update() end)
+    pcall(function() RecoilModule.applyNoRecoil() end)
+    pcall(function() AimbotModule.update() end)
+    pcall(function() FOVCirclesModule.update() end)
+    pcall(function() CustomSkyboxModule.update() end)
+    pcall(function() ESPModule.updateESPObjects() end)
+    pcall(function() KeybindsListModule.update() end)
+    pcall(function() ActiveFeaturesModule.update() end)
+    pcall(function() WeaponChamsModule.update() end)
 end))
 
 -- Setup Player added/removing handlers
@@ -217,8 +240,10 @@ end
 -- //            UI Configuration        \\ --
 -- // ================================== \\ --
 
+print("[Quantix Loader] Creating UI window...")
 local Window = Library:CreateWindow({ Title = "Quantix dev access | fps strafe" })
 State.GlobalWindow = Window
+print("[Quantix Loader] UI window created successfully!")
 
 getgenv().QuantixLibrary = Library
 Library.ToggleKey = State.MenuToggleKey or Enum.KeyCode.Insert
