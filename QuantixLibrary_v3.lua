@@ -1,24 +1,31 @@
 local Library = {
     Connections = {},
     ToggleKey = Enum.KeyCode.Insert,
-    OnToggle = nil
+    OnToggle = nil,
+    Registry = {},
+    ThemeElements = {},
+    Gradients = {},
+    AccentStartGradients = {},
+    AccentEndGradients = {},
+    Window = nil
 }
 
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = gethui and gethui() or game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 local Theme = {
-    Background = Color3.fromRGB(18, 18, 20),
-    Darker = Color3.fromRGB(12, 12, 14),
-    DarkOutline = Color3.fromRGB(35, 35, 40),
-    LightOutline = Color3.fromRGB(50, 50, 55),
+    Background = Color3.fromRGB(15, 15, 17),
+    Darker = Color3.fromRGB(10, 10, 11),
+    DarkOutline = Color3.fromRGB(30, 30, 35),
+    LightOutline = Color3.fromRGB(45, 45, 50),
     AccentStart = Color3.fromRGB(115, 120, 255), 
     AccentEnd = Color3.fromRGB(150, 150, 255),
     Text = Color3.fromRGB(220, 220, 220),
     TextDark = Color3.fromRGB(150, 150, 150),
-    ElementBackground = Color3.fromRGB(25, 25, 30),
+    ElementBackground = Color3.fromRGB(22, 22, 26),
     Font = Enum.Font.Code,
     TextSize = 13
 }
@@ -31,6 +38,221 @@ local function tween(object, time, propertyTable)
     return t
 end
 
+-- Accent Theme Dynamic Repainter
+function Library:SetAccentColors(startColor, endColor)
+    Theme.AccentStart = startColor
+    Theme.AccentEnd = endColor
+    
+    local sequence = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, startColor),
+        ColorSequenceKeypoint.new(1, endColor)
+    })
+    
+    for _, grad in ipairs(self.Gradients) do
+        pcall(function() grad.Color = sequence end)
+    end
+    for _, elem in ipairs(self.ThemeElements) do
+        pcall(function()
+            if elem:IsA("Frame") or elem:IsA("TextButton") then
+                elem.BackgroundColor3 = startColor
+            elseif elem:IsA("UIStroke") then
+                elem.Color = startColor
+            elseif elem:IsA("TextLabel") or elem:IsA("TextBox") then
+                elem.TextColor3 = startColor
+            end
+        end)
+    end
+    for _, grad in ipairs(self.AccentStartGradients) do
+        pcall(function()
+            grad.Color = ColorSequence.new(startColor)
+        end)
+    end
+    for _, grad in ipairs(self.AccentEndGradients) do
+        pcall(function()
+            grad.Color = ColorSequence.new(endColor)
+        end)
+    end
+end
+
+-- Premium Slide-in Toast Notifications
+local notificationQueue = {}
+local activeNotifications = 0
+
+function Library:Notify(title, message, duration)
+    title = title or "Notification"
+    message = message or ""
+    duration = duration or 3.5
+
+    local ScreenGui = ScreenGui or CoreGui:FindFirstChild("QuantixNotifications")
+    if not ScreenGui then
+        ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "QuantixNotifications"
+        ScreenGui.Parent = RunService:IsStudio() and game.Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
+    end
+
+    local ToastFrame = Instance.new("Frame")
+    ToastFrame.Size = UDim2.new(0, 240, 0, 50)
+    ToastFrame.Position = UDim2.new(1, 260, 1, -60 - (activeNotifications * 60))
+    ToastFrame.BackgroundColor3 = Theme.Background
+    ToastFrame.BorderSizePixel = 0
+    ToastFrame.Parent = ScreenGui
+
+    -- Crisp Double Sharp Border
+    local OuterBorder = Instance.new("UIStroke")
+    OuterBorder.Color = Theme.DarkOutline
+    OuterBorder.Thickness = 1
+    OuterBorder.Parent = ToastFrame
+
+    local LeftAccent = Instance.new("Frame")
+    LeftAccent.Size = UDim2.new(0, 3, 1, 0)
+    LeftAccent.Position = UDim2.new(0, 0, 0, 0)
+    LeftAccent.BorderSizePixel = 0
+    LeftAccent.Parent = ToastFrame
+
+    local AccentGradient = Instance.new("UIGradient")
+    AccentGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.AccentStart),
+        ColorSequenceKeypoint.new(1, Theme.AccentEnd)
+    })
+    AccentGradient.Rotation = 90
+    AccentGradient.Parent = LeftAccent
+    table.insert(self.Gradients, AccentGradient)
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, -15, 0, 18)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 4)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title:upper()
+    TitleLabel.TextColor3 = Theme.Text
+    TitleLabel.Font = Theme.Font
+    TitleLabel.TextSize = 11
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Parent = ToastFrame
+
+    local MessageLabel = Instance.new("TextLabel")
+    MessageLabel.Size = UDim2.new(1, -15, 0, 24)
+    MessageLabel.Position = UDim2.new(0, 10, 0, 20)
+    MessageLabel.BackgroundTransparency = 1
+    MessageLabel.Text = message
+    MessageLabel.TextColor3 = Theme.TextDark
+    MessageLabel.Font = Theme.Font
+    MessageLabel.TextSize = 10
+    MessageLabel.TextWrapped = true
+    MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    MessageLabel.Parent = ToastFrame
+
+    local ProgressBar = Instance.new("Frame")
+    ProgressBar.Size = UDim2.new(1, 0, 0, 1)
+    ProgressBar.Position = UDim2.new(0, 0, 1, -1)
+    ProgressBar.BackgroundColor3 = Theme.AccentStart
+    ProgressBar.BorderSizePixel = 0
+    ProgressBar.Parent = ToastFrame
+    table.insert(self.ThemeElements, ProgressBar)
+
+    activeNotifications = activeNotifications + 1
+
+    -- Animate in
+    tween(ToastFrame, 0.25, { Position = UDim2.new(1, -250, 1, -60 - ((activeNotifications - 1) * 60)) })
+    tween(ProgressBar, duration, { Size = UDim2.new(0, 0, 0, 1) })
+
+    task.delay(duration, function()
+        activeNotifications = activeNotifications - 1
+        local outTween = tween(ToastFrame, 0.25, { Position = UDim2.new(1, 260, ToastFrame.Position.Y.Scale, ToastFrame.Position.Y.Offset) })
+        outTween.Completed:Wait()
+        ToastFrame:Destroy()
+    end)
+end
+
+-- Serialization Config Files Save/Load Profile System
+function Library:SaveConfig(profileName)
+    if not profileName or profileName == "" then
+        self:Notify("Config", "Please enter a valid config name", 3)
+        return
+    end
+
+    local configData = {}
+    for name, item in pairs(self.Registry) do
+        pcall(function()
+            local rawVal = item.Get()
+            if typeof(rawVal) == "Color3" then
+                configData[name] = { Type = "Color3", Value = { rawVal.R, rawVal.G, rawVal.B } }
+            elseif typeof(rawVal) == "EnumItem" then
+                configData[name] = { Type = "EnumItem", EnumType = tostring(rawVal.EnumType), Value = rawVal.Name }
+            else
+                configData[name] = { Type = "Primitive", Value = rawVal }
+            end
+        end)
+    end
+
+    local ok, json = pcall(HttpService.JSONEncode, HttpService, configData)
+    if not ok then
+        self:Notify("Config Error", "Failed to encode config to JSON", 4)
+        return
+    end
+
+    local filePath = "Quantix_" .. profileName .. ".json"
+    local writeOk, writeErr = pcall(function()
+        if writefile then
+            writefile(filePath, json)
+        else
+            error("writefile not supported by executor")
+        end
+    end)
+
+    if writeOk then
+        self:Notify("Config", "Saved config to " .. filePath, 3.5)
+    else
+        self:Notify("Config Warning", "Could not save file locally. Details: " .. tostring(writeErr), 5)
+    end
+end
+
+function Library:LoadConfig(profileName)
+    if not profileName or profileName == "" then
+        self:Notify("Config", "Please enter a valid config name", 3)
+        return
+    end
+
+    local filePath = "Quantix_" .. profileName .. ".json"
+    local readOk, content = pcall(function()
+        if readfile then
+            return readfile(filePath)
+        else
+            error("readfile not supported by executor")
+        end
+    end)
+
+    if not readOk then
+        self:Notify("Config Warning", "Config file " .. filePath .. " not found or readfile unsupported", 4)
+        return
+    end
+
+    local decodeOk, configData = pcall(HttpService.JSONDecode, HttpService, content)
+    if not decodeOk then
+        self:Notify("Config Error", "Failed to decode config JSON", 4)
+        return
+    end
+
+    for name, item in pairs(configData) do
+        local regItem = self.Registry[name]
+        if regItem then
+            pcall(function()
+                if item.Type == "Color3" then
+                    local c = Color3.new(item.Value[1], item.Value[2], item.Value[3])
+                    regItem.Set(c)
+                elseif item.Type == "EnumItem" then
+                    local enumType = item.EnumType:gsub("Enum.", "")
+                    local val = Enum[enumType][item.Value]
+                    regItem.Set(val)
+                else
+                    regItem.Set(item.Value)
+                end
+            end)
+        end
+    end
+
+    self:Notify("Config", "Successfully loaded config " .. filePath, 3.5)
+end
+
 function Library:CreateWindow(options)
     local titleText = options.Title or "Quantix dev access | fps strafe"
     
@@ -40,22 +262,18 @@ function Library:CreateWindow(options)
         ScreenGui.Parent = RunService:IsStudio() and game.Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
     end)
 
-    -- Glow frame (placed behind MainFrame to look like a shadow drop/outer glow)
+    -- Glow outline border behind main menu
     local GlowFrame = Instance.new("Frame")
     GlowFrame.Name = "Glow"
-    GlowFrame.Size = UDim2.new(0, 562, 0, 462)
-    GlowFrame.Position = UDim2.new(0.5, -281, 0.5, -231)
+    GlowFrame.Size = UDim2.new(0, 554, 0, 454)
+    GlowFrame.Position = UDim2.new(0.5, -277, 0.5, -227)
     GlowFrame.BackgroundColor3 = Theme.Background
-    GlowFrame.BackgroundTransparency = 0.65
+    GlowFrame.BackgroundTransparency = 0.5
     GlowFrame.BorderSizePixel = 0
     GlowFrame.Parent = ScreenGui
     
-    local GlowCorner = Instance.new("UICorner")
-    GlowCorner.CornerRadius = UDim.new(0, 8)
-    GlowCorner.Parent = GlowFrame
-    
     local GlowStroke = Instance.new("UIStroke")
-    GlowStroke.Thickness = 6
+    GlowStroke.Thickness = 2
     GlowStroke.Color = Theme.AccentStart
     GlowStroke.Parent = GlowFrame
     
@@ -65,6 +283,7 @@ function Library:CreateWindow(options)
         ColorSequenceKeypoint.new(1, Theme.AccentEnd)
     })
     GlowGradient.Parent = GlowStroke
+    table.insert(self.Gradients, GlowGradient)
 
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "Main"
@@ -76,7 +295,7 @@ function Library:CreateWindow(options)
 
     -- Sync glow position and visibility
     local function updateGlowPosition()
-        GlowFrame.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset - 6, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset - 6)
+        GlowFrame.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset - 2, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset - 2)
     end
     MainFrame:GetPropertyChangedSignal("Position"):Connect(updateGlowPosition)
     MainFrame:GetPropertyChangedSignal("Visible"):Connect(function()
@@ -95,17 +314,17 @@ function Library:CreateWindow(options)
     MainFrame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
     end)
-    table.insert(Library.Connections, UserInputService.InputChanged:Connect(function(input)
+    table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
             MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end))
-    table.insert(Library.Connections, UserInputService.InputEnded:Connect(function(input)
+    table.insert(self.Connections, UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end))
 
-    -- Aesthetic Outer Border
+    -- Aesthetic Double Outer Border (1px Inner outline + 1px Accent Gradient frame)
     local OuterBorder = Instance.new("UIStroke")
     OuterBorder.Color = Color3.new(1, 1, 1)
     OuterBorder.Thickness = 1
@@ -117,6 +336,7 @@ function Library:CreateWindow(options)
         ColorSequenceKeypoint.new(1, Theme.AccentEnd)
     })
     BorderGradient.Parent = OuterBorder
+    table.insert(self.Gradients, BorderGradient)
 
     -- Horizontal Accent Line under Title Bar
     local TopAccent = Instance.new("Frame")
@@ -131,6 +351,7 @@ function Library:CreateWindow(options)
         ColorSequenceKeypoint.new(1, Theme.AccentEnd)
     })
     TopAccentGradient.Parent = TopAccent
+    table.insert(self.Gradients, TopAccentGradient)
 
     -- Title
     local Title = Instance.new("TextLabel")
@@ -163,12 +384,32 @@ function Library:CreateWindow(options)
     ContentContainer.Parent = MainFrame
 
     local Window = { Tabs = {}, CurrentTab = nil, Gui = ScreenGui, Main = MainFrame, ToggleKey = Enum.KeyCode.Insert }
-    Library.Window = Window
+    self.Window = Window
 
-    table.insert(Library.Connections, UserInputService.InputBegan:Connect(function(input, processed)
-        if not processed and (input.KeyCode == Library.ToggleKey or input.UserInputType == Library.ToggleKey) then
-            Window.Main.Visible = not Window.Main.Visible
-            if Library.OnToggle then pcall(function() Library.OnToggle(Window.Main.Visible) end) end
+    -- Smooth scale toggle menu transition
+    local toggling = false
+    local function ToggleMenu(visible)
+        if toggling then return end
+        toggling = true
+        if visible then
+            MainFrame.Size = UDim2.new(0, 0, 0, 0)
+            MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+            MainFrame.Visible = true
+            local tMain = tween(MainFrame, 0.25, { Size = UDim2.new(0, 550, 0, 450), Position = UDim2.new(0.5, -275, 0.5, -225) })
+            tMain.Completed:Wait()
+        else
+            local tMain = tween(MainFrame, 0.25, { Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0) })
+            tMain.Completed:Wait()
+            MainFrame.Visible = false
+        end
+        toggling = false
+    end
+
+    table.insert(self.Connections, UserInputService.InputBegan:Connect(function(input, processed)
+        if not processed and (input.KeyCode == self.ToggleKey or input.UserInputType == self.ToggleKey) then
+            local nextState = not MainFrame.Visible
+            ToggleMenu(nextState)
+            if self.OnToggle then pcall(function() self.OnToggle(nextState) end) end
         end
     end))
 
@@ -192,6 +433,7 @@ function Library:CreateWindow(options)
         TabContent.ScrollBarImageColor3 = Theme.AccentStart
         TabContent.Visible = false
         TabContent.Parent = ContentContainer
+        table.insert(Library.ThemeElements, TabContent)
 
         local ContentLayout = Instance.new("UIListLayout")
         ContentLayout.Padding = UDim.new(0, 8)
@@ -256,6 +498,12 @@ function Library:CreateWindow(options)
             Groupbox.BorderColor3 = Theme.DarkOutline
             Groupbox.Parent = targetSide
 
+            -- 1px Inline accent highlights for header
+            local GroupBorder = Instance.new("UIStroke")
+            GroupBorder.Thickness = 1
+            GroupBorder.Color = Theme.DarkOutline
+            GroupBorder.Parent = Groupbox
+
             local GroupTitle = Instance.new("TextLabel")
             GroupTitle.Size = UDim2.new(1, -10, 0, 20)
             GroupTitle.Position = UDim2.new(0, 5, 0, 0)
@@ -306,6 +554,62 @@ function Library:CreateWindow(options)
                 Label.TextSize = Theme.TextSize
                 Label.TextXAlignment = Enum.TextXAlignment.Left
                 Label.Parent = LabelFrame
+                
+                local control = {}
+                function control.Set(text) Label.Text = text end
+                function control.Get() return Label.Text end
+                return control
+            end
+
+            function Group:CreateTextBox(options)
+                local BoxFrame = Instance.new("Frame")
+                BoxFrame.Size = UDim2.new(1, 0, 0, 32)
+                BoxFrame.BackgroundTransparency = 1
+                BoxFrame.Parent = GroupContainer
+
+                local Label = Instance.new("TextLabel")
+                Label.Size = UDim2.new(1, 0, 0, 15)
+                Label.Position = UDim2.new(0, 2, 0, 0)
+                Label.BackgroundTransparency = 1
+                Label.Text = options.Name
+                Label.TextColor3 = Theme.TextDark
+                Label.Font = Theme.Font
+                Label.TextSize = Theme.TextSize
+                Label.TextXAlignment = Enum.TextXAlignment.Left
+                Label.Parent = BoxFrame
+
+                local BoxInput = Instance.new("TextBox")
+                BoxInput.Size = UDim2.new(1, -4, 0, 16)
+                BoxInput.Position = UDim2.new(0, 2, 0, 15)
+                BoxInput.BackgroundColor3 = Theme.ElementBackground
+                BoxInput.BorderColor3 = Theme.LightOutline
+                BoxInput.Text = options.Default or ""
+                BoxInput.PlaceholderText = options.Placeholder or ""
+                BoxInput.TextColor3 = Theme.Text
+                BoxInput.PlaceholderColor3 = Theme.TextDark
+                BoxInput.Font = Theme.Font
+                BoxInput.TextSize = Theme.TextSize - 1
+                BoxInput.TextXAlignment = Enum.TextXAlignment.Left
+                BoxInput.ClearTextOnFocus = false
+                BoxInput.Parent = BoxFrame
+
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Thickness = 1
+                Stroke.Color = Theme.DarkOutline
+                Stroke.Parent = BoxInput
+
+                BoxInput.FocusLost:Connect(function()
+                    if options.Callback then options.Callback(BoxInput.Text) end
+                end)
+
+                local control = {}
+                function control.Set(val) BoxInput.Text = val; if options.Callback then options.Callback(val) end end
+                function control.Get() return BoxInput.Text end
+                
+                if options.Name then
+                    Library.Registry[options.Name] = control
+                end
+                return control
             end
 
             function Group:CreateButton(options)
@@ -324,6 +628,11 @@ function Library:CreateWindow(options)
                 Button.Font = Theme.Font
                 Button.TextSize = Theme.TextSize
                 Button.Parent = ButtonFrame
+
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Thickness = 1
+                Stroke.Color = Theme.DarkOutline
+                Stroke.Parent = Button
 
                 Button.MouseEnter:Connect(function()
                     tween(Button, 0.15, { BackgroundColor3 = Theme.DarkOutline, TextColor3 = Theme.AccentEnd })
@@ -350,6 +659,11 @@ function Library:CreateWindow(options)
                 ToggleBox.BorderColor3 = Theme.DarkOutline
                 ToggleBox.Text = ""
                 ToggleBox.Parent = ToggleFrame
+
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Thickness = 1
+                Stroke.Color = Theme.DarkOutline
+                Stroke.Parent = ToggleBox
 
                 local ToggleLabel = Instance.new("TextLabel")
                 ToggleLabel.Size = UDim2.new(1, -20, 1, 0)
@@ -384,7 +698,16 @@ function Library:CreateWindow(options)
                     Update()
                 end)
                 
+                local control = {}
+                function control.Set(state) toggled = state; Update() end
+                function control.Get() return toggled end
+
+                if options.Name then
+                    Library.Registry[options.Name] = control
+                end
+
                 Update()
+                return control
             end
 
             function Group:CreateSlider(options)
@@ -411,11 +734,17 @@ function Library:CreateWindow(options)
                 SliderBack.Text = ""
                 SliderBack.Parent = SliderFrame
 
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Thickness = 1
+                Stroke.Color = Theme.DarkOutline
+                Stroke.Parent = SliderBack
+
                 local SliderFill = Instance.new("Frame")
                 SliderFill.Size = UDim2.new(0, 0, 1, 0)
                 SliderFill.BackgroundColor3 = Theme.AccentStart
                 SliderFill.BorderSizePixel = 0
                 SliderFill.Parent = SliderBack
+                table.insert(Library.ThemeElements, SliderFill)
 
                 local FillGradient = Instance.new("UIGradient")
                 FillGradient.Color = ColorSequence.new({
@@ -423,6 +752,7 @@ function Library:CreateWindow(options)
                     ColorSequenceKeypoint.new(1, Theme.AccentEnd)
                 })
                 FillGradient.Parent = SliderFill
+                table.insert(Library.Gradients, FillGradient)
 
                 local ValueLabel = Instance.new("TextLabel")
                 ValueLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -439,11 +769,16 @@ function Library:CreateWindow(options)
                 local current = options.Default or min
                 local sliding = false
 
-                local function Update(input)
-                    local percent = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
-                    current = math.floor(min + (max - min) * percent)
+                local function UpdateVisuals()
+                    local percent = math.clamp((current - min) / (max - min), 0, 1)
                     SliderFill.Size = UDim2.new(percent, 0, 1, 0)
                     ValueLabel.Text = current .. "/" .. max
+                end
+
+                local function UpdateInput(input)
+                    local percent = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+                    current = math.floor(min + (max - min) * percent)
+                    UpdateVisuals()
                     if options.Callback then options.Callback(current) end
                 end
 
@@ -457,7 +792,7 @@ function Library:CreateWindow(options)
                 SliderBack.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         sliding = true
-                        Update(input)
+                        UpdateInput(input)
                     end
                 end)
                 SliderBack.InputEnded:Connect(function(input)
@@ -465,13 +800,20 @@ function Library:CreateWindow(options)
                 end)
                 table.insert(Library.Connections, UserInputService.InputChanged:Connect(function(input)
                     if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        Update(input)
+                        UpdateInput(input)
                     end
                 end))
 
-                local defaultPercent = (current - min) / (max - min)
-                SliderFill.Size = UDim2.new(defaultPercent, 0, 1, 0)
-                ValueLabel.Text = current .. "/" .. max
+                local control = {}
+                function control.Set(val) current = math.clamp(val, min, max); UpdateVisuals(); if options.Callback then options.Callback(current) end end
+                function control.Get() return current end
+
+                if options.Name then
+                    Library.Registry[options.Name] = control
+                end
+
+                UpdateVisuals()
+                return control
             end
 
             function Group:CreateKeybind(options)
@@ -501,6 +843,11 @@ function Library:CreateWindow(options)
                 KeybindButton.Font = Theme.Font
                 KeybindButton.TextSize = Theme.TextSize
                 KeybindButton.Parent = KeybindFrame
+
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Thickness = 1
+                Stroke.Color = Theme.DarkOutline
+                Stroke.Parent = KeybindButton
 
                 local currentKey = options.Default
                 local listening = false
@@ -541,6 +888,20 @@ function Library:CreateWindow(options)
                         end
                     end
                 end))
+
+                local control = {}
+                function control.Set(key)
+                    currentKey = key
+                    KeybindButton.Text = key.Name or tostring(key):gsub("Enum.UserInputType.", ""):gsub("Enum.KeyCode.", "")
+                    if options.Callback then options.Callback(currentKey) end
+                end
+                function control.Get() return currentKey end
+
+                if options.Name then
+                    Library.Registry[options.Name] = control
+                end
+
+                return control
             end
 
             function Group:CreateColorpicker(options)
@@ -567,10 +928,11 @@ function Library:CreateWindow(options)
                 PreviewButton.BorderColor3 = Theme.LightOutline
                 PreviewButton.Text = ""
                 PreviewButton.Parent = ColorpickerFrame
-                
-                local previewCorner = Instance.new("UICorner")
-                previewCorner.CornerRadius = UDim.new(0, 2)
-                previewCorner.Parent = PreviewButton
+
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Thickness = 1
+                Stroke.Color = Theme.DarkOutline
+                Stroke.Parent = PreviewButton
 
                 -- Dropdown Drawer Frame
                 local Drawer = Instance.new("Frame")
@@ -589,9 +951,10 @@ function Library:CreateWindow(options)
                 CurrentColorBox.BorderColor3 = Theme.LightOutline
                 CurrentColorBox.Parent = Drawer
 
-                local boxCorner = Instance.new("UICorner")
-                boxCorner.CornerRadius = UDim.new(0, 4)
-                boxCorner.Parent = CurrentColorBox
+                local BoxStroke = Instance.new("UIStroke")
+                BoxStroke.Thickness = 1
+                BoxStroke.Color = Theme.DarkOutline
+                BoxStroke.Parent = CurrentColorBox
 
                 -- Close Button in Drawer
                 local CloseButton = Instance.new("TextButton")
@@ -605,9 +968,10 @@ function Library:CreateWindow(options)
                 CloseButton.TextSize = 12
                 CloseButton.Parent = Drawer
 
-                local closeCorner = Instance.new("UICorner")
-                closeCorner.CornerRadius = UDim.new(0, 4)
-                closeCorner.Parent = CloseButton
+                local CloseStroke = Instance.new("UIStroke")
+                CloseStroke.Thickness = 1
+                CloseStroke.Color = Theme.DarkOutline
+                CloseStroke.Parent = CloseButton
 
                 local Spectrum = Instance.new("ImageButton")
                 Spectrum.Size = UDim2.new(1, -4, 0, 100)
@@ -618,10 +982,11 @@ function Library:CreateWindow(options)
                 Spectrum.BorderSizePixel = 0
                 Spectrum.ZIndex = 10
                 Spectrum.Parent = Drawer
-                
-                local spectrumCorner = Instance.new("UICorner")
-                spectrumCorner.CornerRadius = UDim.new(0, 4)
-                spectrumCorner.Parent = Spectrum
+
+                local SpectrumStroke = Instance.new("UIStroke")
+                SpectrumStroke.Thickness = 1
+                SpectrumStroke.Color = Theme.DarkOutline
+                SpectrumStroke.Parent = Spectrum
 
                 local RainbowGradient = Instance.new("UIGradient")
                 RainbowGradient.Color = ColorSequence.new({
@@ -643,10 +1008,6 @@ function Library:CreateWindow(options)
                 Overlay.Active = false
                 Overlay.ZIndex = 11
                 Overlay.Parent = Spectrum
-                
-                local overlayCorner = Instance.new("UICorner")
-                overlayCorner.CornerRadius = UDim.new(0, 4)
-                overlayCorner.Parent = Overlay
 
                 local OverlayGradient = Instance.new("UIGradient")
                 OverlayGradient.Rotation = 90
@@ -671,10 +1032,6 @@ function Library:CreateWindow(options)
                 Indicator.ZIndex = 12
                 Indicator.Parent = Spectrum
                 
-                local indicatorCorner = Instance.new("UICorner")
-                indicatorCorner.CornerRadius = UDim.new(0.5, 0)
-                indicatorCorner.Parent = Indicator
-                
                 local indicatorStroke = Instance.new("UIStroke")
                 indicatorStroke.Thickness = 1
                 indicatorStroke.Color = Color3.fromRGB(0, 0, 0)
@@ -693,6 +1050,14 @@ function Library:CreateWindow(options)
                     initY = 0.5 + (1 - v) / 2
                 end
                 Indicator.Position = UDim2.new(initX, 0, initY, 0)
+
+                local function UpdateVisuals()
+                    PreviewButton.BackgroundColor3 = activeColor
+                    CurrentColorBox.BackgroundColor3 = activeColor
+                    local h, s, v = Color3.toHSV(activeColor)
+                    local yVal = (s < 1) and (s / 2) or (0.5 + (1 - v) / 2)
+                    Indicator.Position = UDim2.new(h, 0, yVal, 0)
+                end
 
                 local function updateColor(input)
                     local absPos = Spectrum.AbsolutePosition
@@ -773,6 +1138,16 @@ function Library:CreateWindow(options)
                 CloseButton.MouseButton1Click:Connect(function()
                     Toggle(false)
                 end)
+
+                local control = {}
+                function control.Set(color) activeColor = color; UpdateVisuals(); if options.Callback then options.Callback(activeColor) end end
+                function control.Get() return activeColor end
+
+                if options.Name then
+                    Library.Registry[options.Name] = control
+                end
+
+                return control
             end
 
             function Group:CreateDropdown(options)
@@ -803,6 +1178,11 @@ function Library:CreateWindow(options)
                 SelectorButton.TextXAlignment = Enum.TextXAlignment.Left
                 SelectorButton.Parent = DropdownFrame
 
+                local SelectorStroke = Instance.new("UIStroke")
+                SelectorStroke.Thickness = 1
+                SelectorStroke.Color = Theme.DarkOutline
+                SelectorStroke.Parent = SelectorButton
+
                 local ArrowLabel = Instance.new("TextLabel")
                 ArrowLabel.Size = UDim2.new(0, 15, 1, 0)
                 ArrowLabel.Position = UDim2.new(1, -18, 0, 0)
@@ -824,6 +1204,12 @@ function Library:CreateWindow(options)
                 Drawer.ZIndex = 15
                 Drawer.Visible = false
                 Drawer.Parent = DropdownFrame
+                table.insert(Library.ThemeElements, Drawer)
+
+                local DrawerStroke = Instance.new("UIStroke")
+                DrawerStroke.Thickness = 1
+                DrawerStroke.Color = Theme.DarkOutline
+                DrawerStroke.Parent = Drawer
 
                 local DrawerLayout = Instance.new("UIListLayout")
                 DrawerLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -904,6 +1290,16 @@ function Library:CreateWindow(options)
                 SelectorButton.MouseButton1Click:Connect(function()
                     Toggle(not toggled)
                 end)
+
+                local control = {}
+                function control.Set(val) selectOption(val) end
+                function control.Get() return currentSelection end
+
+                if options.Name then
+                    Library.Registry[options.Name] = control
+                end
+
+                return control
             end
 
             return Group

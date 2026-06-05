@@ -94,6 +94,10 @@ if State.TeamCheck == nil then State.TeamCheck = true end
 if State.Smoothing == nil then State.Smoothing = 5 end
 if State.AimKey == nil then State.AimKey = Enum.UserInputType.MouseButton2 end
 if State.MenuToggleKey == nil then State.MenuToggleKey = Enum.KeyCode.Insert end
+if State.AimKeyMode == nil then State.AimKeyMode = "Hold" end
+if State.BhopKeyMode == nil then State.BhopKeyMode = "Hold" end
+if State.ThemeAccentStart == nil then State.ThemeAccentStart = Color3.fromRGB(115, 120, 255) end
+if State.ThemeAccentEnd == nil then State.ThemeAccentEnd = Color3.fromRGB(150, 150, 255) end
 
 if State.ESPEnabled == nil then State.ESPEnabled = false end
 if State.BoxESP == nil then State.BoxESP = false end
@@ -206,16 +210,26 @@ pcall(function() HookManagerModule.startHook() end)
 -- //          Start Feature Loops       \\ --
 -- // ================================== \\ --
 
--- Trigger aimbot while custom State.AimKey is held down
-table.insert(State.Connections, UserInputService.InputBegan:Connect(function(input)
+-- Trigger aimbot while custom State.AimKey is held down (or toggled)
+table.insert(State.Connections, UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
     if input.KeyCode == State.AimKey or input.UserInputType == State.AimKey then
-        State.Aiming = true
+        if State.AimKeyMode == "Toggle" then
+            State.Aiming = not State.Aiming
+            if Library and Library.Notify then
+                Library:Notify("Aimbot", "Aimbot is now " .. (State.Aiming and "Active" or "Inactive"), 1.5)
+            end
+        else
+            State.Aiming = true
+        end
     end
 end))
 
 table.insert(State.Connections, UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == State.AimKey or input.UserInputType == State.AimKey then
-        State.Aiming = false
+        if State.AimKeyMode == "Hold" then
+            State.Aiming = false
+        end
     end
 end))
 
@@ -259,6 +273,11 @@ local Window = Library:CreateWindow({ Title = "Quantix dev access | fps strafe" 
 State.GlobalWindow = Window
 print("[Quantix Loader] UI window created successfully!")
 
+-- Apply theme accent colors on load
+pcall(function()
+    Library:SetAccentColors(State.ThemeAccentStart, State.ThemeAccentEnd)
+end)
+
 getgenv().QuantixLibrary = Library
 Library.ToggleKey = State.MenuToggleKey or Enum.KeyCode.Insert
 Library.OnToggle = function(visible)
@@ -277,6 +296,7 @@ LegitGroup:CreateToggle({ Name = "visible check", Default = true, Callback = fun
 LegitGroup:CreateToggle({ Name = "apply prediction", Default = false, Callback = function(s) State.PredictionEnabled = s end })
 LegitGroup:CreateSlider({ Name = "smoothing [mouse]", Min = 0, Max = 20, Default = 5, Callback = function(v) State.Smoothing = v end })
 LegitGroup:CreateKeybind({ Name = "aim keybind", Default = Enum.UserInputType.MouseButton2, Callback = function(k) State.AimKey = k; State.Aiming = false end })
+LegitGroup:CreateDropdown({ Name = "aim key mode", List = { "Hold", "Toggle" }, Default = State.AimKeyMode, Callback = function(v) State.AimKeyMode = v; State.Aiming = false end })
 
 local FOVGroup = MainTab:CreateGroupbox("fov settings")
 FOVGroup:CreateToggle({ Name = "enable fov", Default = false, Callback = function(s) State.FOVEnabled = s end })
@@ -346,6 +366,7 @@ RageGroup:CreateToggle({ Name = "speed boost (bypass)", Default = false, Callbac
 RageGroup:CreateSlider({ Name = "boost speed value", Min = 30, Max = 80, Default = 35, Callback = function(v) State.SpeedBoostValue = v end })
 RageGroup:CreateToggle({ Name = "bhop", Default = false, Callback = function(s) State.BhopEnabled = s end })
 RageGroup:CreateKeybind({ Name = "bhop keybind", Default = Enum.KeyCode.Space, Callback = function(k) State.BhopKey = k end })
+RageGroup:CreateDropdown({ Name = "bhop key mode", List = { "Hold", "Toggle" }, Default = State.BhopKeyMode, Callback = function(v) State.BhopKeyMode = v; State.BhopActive = false end })
 
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
@@ -365,6 +386,25 @@ local HUDGroup = MenuTab:CreateGroupbox("hud settings")
 HUDGroup:CreateToggle({ Name = "watermark", Default = false, Callback = function(s) State.WatermarkEnabled = s; pcall(WatermarkModule.toggle, s) end })
 HUDGroup:CreateToggle({ Name = "keybinds list", Default = false, Callback = function(s) State.KeybindsEnabled = s; pcall(KeybindsListModule.toggle, s) end })
 HUDGroup:CreateToggle({ Name = "active features list", Default = false, Callback = function(s) State.ActiveFeaturesEnabled = s; pcall(ActiveFeaturesModule.toggle, s) end })
+
+local ConfigGroup = MenuTab:CreateGroupbox("configurations")
+local configNameBox = ConfigGroup:CreateTextBox({ Name = "Profile Name", Default = "default", Placeholder = "Enter profile name..." })
+ConfigGroup:CreateButton({ Name = "Save Profile", Callback = function()
+    pcall(function() Library:SaveConfig(configNameBox.Get()) end)
+end })
+ConfigGroup:CreateButton({ Name = "Load Profile", Callback = function()
+    pcall(function() Library:LoadConfig(configNameBox.Get()) end)
+end })
+
+local ThemeGroup = MenuTab:CreateGroupbox("theme customizer")
+ThemeGroup:CreateColorpicker({ Name = "Accent Start Color", Default = State.ThemeAccentStart, Callback = function(c)
+    State.ThemeAccentStart = c
+    pcall(function() Library:SetAccentColors(State.ThemeAccentStart, State.ThemeAccentEnd) end)
+end })
+ThemeGroup:CreateColorpicker({ Name = "Accent End Color", Default = State.ThemeAccentEnd, Callback = function(c)
+    State.ThemeAccentEnd = c
+    pcall(function() Library:SetAccentColors(State.ThemeAccentStart, State.ThemeAccentEnd) end)
+end })
 
 local MenuGroup = MenuTab:CreateGroupbox("menu")
 MenuGroup:CreateKeybind({ Name = "menu keybind", Default = Enum.KeyCode.Insert, Callback = function(k)
