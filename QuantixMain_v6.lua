@@ -266,7 +266,7 @@ CamGroup:CreateSlider({ Name = "fov value", Min = 50, Max = 130, Default = 90, C
 local SkyGroup = VisualsTab:CreateGroupbox("skybox")
 SkyGroup:CreateToggle({ Name = "custom skybox", Default = false, Callback = function(s) State.CustomSkyboxEnabled = s; if s then pcall(CustomSkyboxModule.applySkybox, State.CurrentSkyboxName) else pcall(CustomSkyboxModule.restoreSkybox) end end })
 local skyboxNames = { "space", "sunset", "night", "neon city", "synthwave", "purple nebula", "blood moon", "daylight" }
-SkyGroup:CreateDropdown({ Name = "skybox style", Options = skyboxNames, Default = "space", Callback = function(Option) State.CurrentSkyboxName = Option; if State.CustomSkyboxEnabled then pcall(CustomSkyboxModule.applySkybox, State.CurrentSkyboxName) end end })
+SkyGroup:CreateSlider({ Name = "Skybox Style (1-8)", Min = 1, Max = 8, Default = 1, Callback = function(v) State.CurrentSkyboxName = skyboxNames[math.floor(v)]; if State.CustomSkyboxEnabled then pcall(CustomSkyboxModule.applySkybox, State.CurrentSkyboxName) end end })
 
 local FOVColorGroup = VisualsTab:CreateGroupbox("fov circle styling")
 FOVColorGroup:CreateColorpicker({ Name = "circle color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.FOVR, State.FOVG, State.FOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
@@ -275,8 +275,7 @@ FOVColorGroup:CreateSlider({ Name = "thickness", Min = 1, Max = 5, Default = 1, 
 local WeapChamsGroup = VisualsTab:CreateGroupbox("weapon chams")
 WeapChamsGroup:CreateToggle({ Name = "weapon chams", Default = false, Callback = function(s) State.WeaponChamsEnabled = s end })
 WeapChamsGroup:CreateToggle({ Name = "hand chams", Default = false, Callback = function(s) State.HandChamsEnabled = s end })
-local chamsModes = { ["Normal"] = 1, ["Wire"] = 2, ["Outline"] = 3 }
-WeapChamsGroup:CreateDropdown({ Name = "mode", Options = {"Normal", "Wire", "Outline"}, Default = "Normal", Callback = function(Option) State.WeaponChamsMode = chamsModes[Option] end })
+WeapChamsGroup:CreateSlider({ Name = "mode (1:Normal 2:Wire 3:Outline)", Min = 1, Max = 3, Default = 1, Callback = function(v) State.WeaponChamsMode = math.floor(v + 0.5) end })
 WeapChamsGroup:CreateToggle({ Name = "always on top", Default = false, Callback = function(s) State.WeaponChamsDepth = s end })
 WeapChamsGroup:CreateSlider({ Name = "weapon fill trans", Min = 0, Max = 100, Default = 30, Callback = function(v) State.WeaponChamsFillTrans = v / 100 end })
 WeapChamsGroup:CreateSlider({ Name = "weapon outline trans", Min = 0, Max = 100, Default = 0, Callback = function(v) State.WeaponChamsOutlineTrans = v / 100 end })
@@ -304,7 +303,10 @@ RageGroup:CreateToggle({ Name = "infinite ammo", Default = false, Callback = fun
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
 SilentAimGroup:CreateSlider({ Name = "hit chance", Min = 0, Max = 100, Default = 100, Callback = function(v) State.SilentAimHitChance = v end })
-SilentAimGroup:CreateDropdown({ Name = "target part", Options = {"Head", "Torso", "Random"}, Default = "Head", Callback = function(Option) State.SilentAimTargetPart = Option end })
+SilentAimGroup:CreateSlider({ Name = "target part (1:Head, 2:Torso, 3:Rand)", Min = 1, Max = 3, Default = 1, Callback = function(v)
+            local parts = { "Head", "Torso", "Random" }
+            State.SilentAimTargetPart = parts[math.floor(v + 0.5)] or "Head"
+        end })
 SilentAimGroup:CreateToggle({ Name = "show fov circle", Default = false, Callback = function(s) State.SilentAimFOVEnabled = s end })
 SilentAimGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.SilentAimFOVRadius = v end })
 SilentAimGroup:CreateColorpicker({ Name = "fov color", Default = Color3.fromRGB(255, 100, 100), Callback = function(c) State.SilentAimFOVR, State.SilentAimFOVG, State.SilentAimFOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
