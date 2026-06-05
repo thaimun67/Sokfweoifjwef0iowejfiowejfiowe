@@ -341,7 +341,7 @@ RageGroup:CreateToggle({ Name = "no recoil", Default = false, Callback = functio
 RageGroup:CreateToggle({ Name = "no spread", Default = false, Callback = function(s) State.NoSpreadEnabled = s end })
 RageGroup:CreateToggle({ Name = "infinite ammo", Default = false, Callback = function(s) State.InfiniteAmmoEnabled = s end })
 RageGroup:CreateToggle({ Name = "speed boost (bypass)", Default = false, Callback = function(s) State.SpeedBoostEnabled = s end })
-RageGroup:CreateSlider({ Name = "boost speed value", Min = 30, Max = 40, Default = 35, Callback = function(v) State.SpeedBoostValue = v end })
+RageGroup:CreateSlider({ Name = "boost speed value", Min = 30, Max = 80, Default = 35, Callback = function(v) State.SpeedBoostValue = v end })
 
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
