@@ -142,13 +142,19 @@ local function LoadModule(name)
     return result
 end
 
--- Load modules (order matters: GameState first, then modules that depend on it)
+-- Load modules
 local GameStateModule = LoadModule("GameState")(State, Services)
-local VisualsModule = LoadModule("Visuals_v6")(State, Services)
+local HookManagerModule = LoadModule("HookManager")(State, Services)
+local BulletTracesModule = LoadModule("BulletTraces")(State, Services)
+local CustomFOVModule = LoadModule("CustomFOV")(State, Services)
+local CustomSkyboxModule = LoadModule("CustomSkybox")(State, Services)
+local FOVCirclesModule = LoadModule("FOVCircles")(State, Services)
+local WatermarkModule = LoadModule("Watermark")(State, Services, Theme)
+local KeybindsListModule = LoadModule("KeybindsList")(State, Services, Theme)
+local ActiveFeaturesModule = LoadModule("ActiveFeatures")(State, Services, Theme)
 local RecoilModule = LoadModule("Recoil")(State, Services)
-local ESPModule = LoadModule("ESP_v6")(State, Services, Theme, GameStateModule)
-local AimbotModule = LoadModule("Aimbot_v9")(State, Services, GameStateModule)
-local HUDModule = LoadModule("HUD")(State, Services, Theme)
+local ESPModule = LoadModule("ESP")(State, Services, Theme, GameStateModule)
+local AimbotModule = LoadModule("Aimbot")(State, Services, GameStateModule)
 local WeaponChamsModule = LoadModule("WeaponChams")(State, Services)
 
 -- Cleanup old ESP elements from previous runs
@@ -157,9 +163,9 @@ ESPModule.cleanupOldESP()
 -- Start background recoil/camera scanner
 RecoilModule.startScanner()
 
--- Start bullet traces hook
-pcall(function() VisualsModule.startBulletTracesHook() end)
-pcall(function() AimbotModule.startSilentAimHook() end)
+-- Start bullet traces and gun mod hooks
+pcall(function() BulletTracesModule.startBulletTracesHook() end)
+pcall(function() HookManagerModule.startHook() end)
 
 -- // ================================== \\ --
 -- //          Start Feature Loops       \\ --
@@ -180,44 +186,14 @@ end))
 
 -- Unified RenderStepped loop
 table.insert(State.Connections, RunService.RenderStepped:Connect(function()
-    -- 1. FOV Override
-    if State.CustomFOVEnabled then
-        pcall(function()
-            local activeCam = workspace.CurrentCamera
-            if activeCam then
-                if State.CamControllerInst then
-                    State.CamControllerInst.baseFOV = State.CustomFOVValue
-                    if not State.CamControllerInst.fovOverride then
-                        activeCam.FieldOfView = State.CustomFOVValue
-                    end
-                else
-                    activeCam.FieldOfView = State.CustomFOVValue
-                end
-            end
-        end)
-    end
-
-    -- 2. No Recoil
+    pcall(CustomFOVModule.update)
     RecoilModule.applyNoRecoil()
-
-    -- 3. Aimbot
-    AimbotModule.runAimbot()
-
-    -- 4. ESP, FOV Circle, & Keybinds List updates
-    local mousePos = UserInputService:GetMouseLocation()
-    local fovVisible = State.FOVEnabled and State.AimbotEnabled
-    local fovC = Color3.fromRGB(State.FOVR, State.FOVG, State.FOVB)
-    pcall(function() State.FOVCircle:Update(mousePos, State.FOVRadius, fovVisible, fovC, State.FOVThickness) end)
-
-    local silentFovVisible = State.SilentAimFOVEnabled and State.SilentAimEnabled
-    local silentFovC = Color3.fromRGB(State.SilentAimFOVR or 255, State.SilentAimFOVG or 100, State.SilentAimFOVB or 100)
-    pcall(function() State.SilentAimFOVCircle:Update(mousePos, State.SilentAimFOVRadius or 150, silentFovVisible, silentFovC, State.SilentAimFOVThickness or 1) end)
-
+    pcall(AimbotModule.update)
+    pcall(FOVCirclesModule.update)
+    pcall(CustomSkyboxModule.update)
     pcall(ESPModule.updateESPObjects)
-    pcall(HUDModule.updateKeybindsListText)
-    pcall(HUDModule.updateActiveFeaturesHUD)
-
-    -- 5. Weapon & Hand Chams
+    pcall(KeybindsListModule.update)
+    pcall(ActiveFeaturesModule.update)
     pcall(WeaponChamsModule.update)
 end))
 
@@ -284,13 +260,13 @@ ChamsGroup:CreateColorpicker({ Name = "fill color", Default = Color3.fromRGB(115
 ChamsGroup:CreateColorpicker({ Name = "outline color", Default = Color3.fromRGB(255, 255, 255), Callback = function(c) State.ChamsOutlineR, State.ChamsOutlineG, State.ChamsOutlineB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255); pcall(ESPModule.updateESP) end })
 
 local CamGroup = VisualsTab:CreateGroupbox("camera")
-CamGroup:CreateToggle({ Name = "custom fov", Default = false, Callback = function(s) State.CustomFOVEnabled = s; if not s then pcall(VisualsModule.restoreFOV) else pcall(VisualsModule.applyFOV) end end })
-CamGroup:CreateSlider({ Name = "fov value", Min = 50, Max = 130, Default = 90, Callback = function(v) State.CustomFOVValue = v; if State.CustomFOVEnabled then pcall(VisualsModule.applyFOV) end end })
+CamGroup:CreateToggle({ Name = "custom fov", Default = false, Callback = function(s) State.CustomFOVEnabled = s; if not s then pcall(CustomFOVModule.restoreFOV) else pcall(CustomFOVModule.applyFOV) end end })
+CamGroup:CreateSlider({ Name = "fov value", Min = 50, Max = 130, Default = 90, Callback = function(v) State.CustomFOVValue = v; if State.CustomFOVEnabled then pcall(CustomFOVModule.applyFOV) end end })
 
 local SkyGroup = VisualsTab:CreateGroupbox("skybox")
-SkyGroup:CreateToggle({ Name = "custom skybox", Default = false, Callback = function(s) State.CustomSkyboxEnabled = s; if s then pcall(VisualsModule.applySkybox, State.CurrentSkyboxName) else pcall(VisualsModule.restoreSkybox) end end })
+SkyGroup:CreateToggle({ Name = "custom skybox", Default = false, Callback = function(s) State.CustomSkyboxEnabled = s; if s then pcall(CustomSkyboxModule.applySkybox, State.CurrentSkyboxName) else pcall(CustomSkyboxModule.restoreSkybox) end end })
 local skyboxNames = { "space", "sunset", "night", "neon city", "synthwave", "purple nebula", "blood moon", "daylight" }
-SkyGroup:CreateSlider({ Name = "Skybox Style (1-8)", Min = 1, Max = 8, Default = 1, Callback = function(v) State.CurrentSkyboxName = skyboxNames[math.floor(v)]; if State.CustomSkyboxEnabled then pcall(VisualsModule.applySkybox, State.CurrentSkyboxName) end end })
+SkyGroup:CreateDropdown({ Name = "skybox style", Options = skyboxNames, Default = "space", Callback = function(Option) State.CurrentSkyboxName = Option; if State.CustomSkyboxEnabled then pcall(CustomSkyboxModule.applySkybox, State.CurrentSkyboxName) end end })
 
 local FOVColorGroup = VisualsTab:CreateGroupbox("fov circle styling")
 FOVColorGroup:CreateColorpicker({ Name = "circle color", Default = Color3.fromRGB(115, 120, 255), Callback = function(c) State.FOVR, State.FOVG, State.FOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
@@ -299,7 +275,8 @@ FOVColorGroup:CreateSlider({ Name = "thickness", Min = 1, Max = 5, Default = 1, 
 local WeapChamsGroup = VisualsTab:CreateGroupbox("weapon chams")
 WeapChamsGroup:CreateToggle({ Name = "weapon chams", Default = false, Callback = function(s) State.WeaponChamsEnabled = s end })
 WeapChamsGroup:CreateToggle({ Name = "hand chams", Default = false, Callback = function(s) State.HandChamsEnabled = s end })
-WeapChamsGroup:CreateSlider({ Name = "mode (1:Normal 2:Wire 3:Outline)", Min = 1, Max = 3, Default = 1, Callback = function(v) State.WeaponChamsMode = math.floor(v + 0.5) end })
+local chamsModes = { ["Normal"] = 1, ["Wire"] = 2, ["Outline"] = 3 }
+WeapChamsGroup:CreateDropdown({ Name = "mode", Options = {"Normal", "Wire", "Outline"}, Default = "Normal", Callback = function(Option) State.WeaponChamsMode = chamsModes[Option] end })
 WeapChamsGroup:CreateToggle({ Name = "always on top", Default = false, Callback = function(s) State.WeaponChamsDepth = s end })
 WeapChamsGroup:CreateSlider({ Name = "weapon fill trans", Min = 0, Max = 100, Default = 30, Callback = function(v) State.WeaponChamsFillTrans = v / 100 end })
 WeapChamsGroup:CreateSlider({ Name = "weapon outline trans", Min = 0, Max = 100, Default = 0, Callback = function(v) State.WeaponChamsOutlineTrans = v / 100 end })
@@ -327,10 +304,7 @@ RageGroup:CreateToggle({ Name = "infinite ammo", Default = false, Callback = fun
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
 SilentAimGroup:CreateSlider({ Name = "hit chance", Min = 0, Max = 100, Default = 100, Callback = function(v) State.SilentAimHitChance = v end })
-SilentAimGroup:CreateSlider({ Name = "target part (1:Head, 2:Torso, 3:Rand)", Min = 1, Max = 3, Default = 1, Callback = function(v)
-            local parts = { "Head", "Torso", "Random" }
-            State.SilentAimTargetPart = parts[math.floor(v + 0.5)] or "Head"
-        end })
+SilentAimGroup:CreateDropdown({ Name = "target part", Options = {"Head", "Torso", "Random"}, Default = "Head", Callback = function(Option) State.SilentAimTargetPart = Option end })
 SilentAimGroup:CreateToggle({ Name = "show fov circle", Default = false, Callback = function(s) State.SilentAimFOVEnabled = s end })
 SilentAimGroup:CreateSlider({ Name = "fov radius", Min = 10, Max = 350, Default = 150, Callback = function(v) State.SilentAimFOVRadius = v end })
 SilentAimGroup:CreateColorpicker({ Name = "fov color", Default = Color3.fromRGB(255, 100, 100), Callback = function(c) State.SilentAimFOVR, State.SilentAimFOVG, State.SilentAimFOVB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
@@ -340,9 +314,9 @@ SilentAimGroup:CreateSlider({ Name = "fov thickness", Min = 1, Max = 5, Default 
 local MenuTab = Window:CreateTab("settings")
 
 local HUDGroup = MenuTab:CreateGroupbox("hud settings")
-HUDGroup:CreateToggle({ Name = "watermark", Default = false, Callback = function(s) pcall(HUDModule.toggleWatermark, s) end })
-HUDGroup:CreateToggle({ Name = "keybinds list", Default = false, Callback = function(s) pcall(HUDModule.toggleKeybindsList, s) end })
-HUDGroup:CreateToggle({ Name = "active features list", Default = false, Callback = function(s) pcall(HUDModule.toggleActiveFeaturesHUD, s) end })
+HUDGroup:CreateToggle({ Name = "watermark", Default = false, Callback = function(s) State.WatermarkEnabled = s; pcall(WatermarkModule.toggle, s) end })
+HUDGroup:CreateToggle({ Name = "keybinds list", Default = false, Callback = function(s) State.KeybindsEnabled = s; pcall(KeybindsListModule.toggle, s) end })
+HUDGroup:CreateToggle({ Name = "active features list", Default = false, Callback = function(s) State.ActiveFeaturesEnabled = s; pcall(ActiveFeaturesModule.toggle, s) end })
 
 local MenuGroup = MenuTab:CreateGroupbox("menu")
 MenuGroup:CreateKeybind({ Name = "menu keybind", Default = Enum.KeyCode.Insert, Callback = function(k)
@@ -387,8 +361,7 @@ local function doUnload()
     State.Connections = {}
 
     -- Destroy FOV circles
-    pcall(function() State.FOVCircle:Destroy() end)
-    pcall(function() State.SilentAimFOVCircle:Destroy() end)
+    pcall(FOVCirclesModule.destroy)
 
     -- Cleanup ESP elements
     pcall(ESPModule.cleanupOldESP)
