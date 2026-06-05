@@ -15,9 +15,9 @@ return function(State, Services)
 
     local soundIds = {
         Default = originalSoundId or "rbxassetid://7147954330",
-        Click = "rbxassetid://7148560127",
-        Skeet = "rbxassetid://5043530756",
-        CS_Headshot = "rbxassetid://4456640693"
+        Click = "rbxassetid://705502934",
+        Skeet = "rbxassetid://12856925315",
+        CS_Headshot = "rbxassetid://18315629371"
     }
 
     local childConn = nil

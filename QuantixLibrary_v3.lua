@@ -42,8 +42,14 @@ end
 local SoundService = game:GetService("SoundService")
 local function playSound(soundId, volume)
     pcall(function()
+        local idStr = tostring(soundId):gsub("rbxassetid://", "")
+        if idStr == "6895079683" then
+            idStr = "12222005" -- Working hover tick
+        elseif idStr == "8704257544" then
+            idStr = "7212399604" -- Working click pop
+        end
         local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://" .. tostring(soundId):gsub("rbxassetid://", "")
+        sound.SoundId = "rbxassetid://" .. idStr
         sound.Volume = volume or 0.3
         sound.PlayOnRemove = true
         sound.Parent = SoundService
