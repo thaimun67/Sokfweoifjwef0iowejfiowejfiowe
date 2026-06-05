@@ -358,8 +358,7 @@ TracesGroup:CreateSlider({ Name = "duration (1-5s)", Min = 1, Max = 5, Default =
 TracesGroup:CreateColorpicker({ Name = "color", Default = Color3.fromRGB(219, 29, 222), Callback = function(c) State.BulletTraceColorR, State.BulletTraceColorG, State.BulletTraceColorB = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255) end })
 
 local Hitgroup = VisualsTab:CreateGroupbox("hitsounds")
-Hitgroup:CreateDropdown({ Name = "hitsound style", List = { "Default", "Click", "Skeet" }, Default = State.Hitsound or "Default", Callback = function(v) State.Hitsound = v end })
-Hitgroup:CreateDropdown({ Name = "headshot sound", List = { "None", "CS Headshot" }, Default = State.HeadshotSound or "None", Callback = function(v) State.HeadshotSound = v end })
+Hitgroup:CreateDropdown({ Name = "hitsound style", List = { "Default", "Click", "Skeet", "CS Headshot" }, Default = State.Hitsound or "Default", Callback = function(v) State.Hitsound = v end })
 
 -- // ====== Tab: Rage ====== \\ --
 local RageTab = Window:CreateTab("rage")

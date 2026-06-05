@@ -541,7 +541,7 @@ function Library:CreateWindow(options)
             
             LeftSide.Size = UDim2.new(0.5, -6, 0, leftH)
             RightSide.Size = UDim2.new(0.5, -6, 0, rightH)
-            TabContent.CanvasSize = UDim2.new(0, 0, 0, maxH + 20)
+            TabContent.CanvasSize = UDim2.new(0, 0, 0, maxH + 40)
         end
         LeftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
         RightLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
@@ -640,6 +640,7 @@ function Library:CreateWindow(options)
             GroupLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
                 Groupbox.Size = UDim2.new(1, 0, 0, GroupLayout.AbsoluteContentSize.Y + 34)
             end)
+            Groupbox:GetPropertyChangedSignal("Size"):Connect(updateCanvasSize)
 
             local Group = {}
 
