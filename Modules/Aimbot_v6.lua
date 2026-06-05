@@ -300,7 +300,10 @@ return function(State, Services, GameStateModule)
                     return
                 end
 
-                local function hookedFireHitscanShot(self, gunModule)
+                local function hookedFireHitscanShot(self, ...)
+                    local args = {...}
+                    local gunModule = args[1]
+                    
                     local shouldRedirect = false
                     if State.SilentAimEnabled then
                         local chance = State.SilentAimHitChance or 100
@@ -329,7 +332,7 @@ return function(State, Services, GameStateModule)
                                 local oldCF = activeCam.CFrame
                                 activeCam.CFrame = CFrame.lookAt(oldCF.Position, targetPos)
                                 
-                                local result = originalFireHitscanShot(self, gunModule)
+                                local result = originalFireHitscanShot(self, unpack(args))
                                 
                                 activeCam.CFrame = oldCF
                                 return result
@@ -338,7 +341,7 @@ return function(State, Services, GameStateModule)
                             print("[Quantix] Silent Aim target is nil (none in FOV or visible)")
                         end
                     end
-                    return originalFireHitscanShot(self, gunModule)
+                    return originalFireHitscanShot(self, unpack(args))
                 end
 
                 if targetFunc and hookfunction then

@@ -300,8 +300,11 @@ return function(State, Services, GameStateModule)
                     return
                 end
 
-                local function hookedFireHitscanShot(self, gunModule)
-                    if State.InfiniteAmmoEnabled then
+                local function hookedFireHitscanShot(self, ...)
+                    local args = {...}
+                    local gunModule = args[1]
+                    
+                    if State.InfiniteAmmoEnabled and type(gunModule) == "table" then
                         if self.currentAmmo and self.currentAmmo <= 0 and gunModule.magSize then
                             self.currentAmmo = gunModule.magSize
                         end
@@ -310,7 +313,7 @@ return function(State, Services, GameStateModule)
                         end
                     end
 
-                    if State.NoSpreadEnabled and gunModule then
+                    if State.NoSpreadEnabled and type(gunModule) == "table" then
                         pcall(function()
                             if gunModule.spread then
                                 if type(gunModule.spread) == "table" then
@@ -354,7 +357,7 @@ return function(State, Services, GameStateModule)
                                 local oldCF = activeCam.CFrame
                                 activeCam.CFrame = CFrame.lookAt(oldCF.Position, targetPos)
                                 
-                                local result = originalFireHitscanShot(self, gunModule)
+                                local result = originalFireHitscanShot(self, unpack(args))
                                 
                                 activeCam.CFrame = oldCF
                                 return result
@@ -363,7 +366,7 @@ return function(State, Services, GameStateModule)
                             print("[Quantix] Silent Aim target is nil (none in FOV or visible)")
                         end
                     end
-                    return originalFireHitscanShot(self, gunModule)
+                    return originalFireHitscanShot(self, unpack(args))
                 end
 
                 if targetFunc and hookfunction then
