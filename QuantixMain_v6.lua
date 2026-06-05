@@ -105,6 +105,7 @@ if State.HitboxExpanderEnabled == nil then State.HitboxExpanderEnabled = false e
 if State.HitboxSize == nil then State.HitboxSize = 10 end
 if State.HitboxTransparency == nil then State.HitboxTransparency = 0.5 end
 if State.HitboxTargetPart == nil then State.HitboxTargetPart = "Head" end
+if State.MagicBulletEnabled == nil then State.MagicBulletEnabled = false end
 
 if State.ESPEnabled == nil then State.ESPEnabled = false end
 if State.BoxESP == nil then State.BoxESP = false end
@@ -392,6 +393,7 @@ RageGroup:CreateToggle({ Name = "hitbox expander", Default = false, Callback = f
 RageGroup:CreateSlider({ Name = "hitbox size", Min = 2, Max = 30, Default = 10, Callback = function(v) State.HitboxSize = v end })
 RageGroup:CreateSlider({ Name = "hitbox trans (%)", Min = 0, Max = 100, Default = 50, Callback = function(v) State.HitboxTransparency = v / 100 end })
 RageGroup:CreateDropdown({ Name = "hitbox target", List = { "Head", "Torso" }, Default = "Head", Callback = function(v) State.HitboxTargetPart = v end })
+RageGroup:CreateToggle({ Name = "magic bullet (wallbang)", Default = false, Callback = function(s) State.MagicBulletEnabled = s end })
 
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })

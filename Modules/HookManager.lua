@@ -28,6 +28,7 @@ return function(State, Services)
     local InfiniteAmmo = LoadModule("InfiniteAmmo")(State, Services)
     local NoSpread = LoadModule("NoSpread")(State, Services)
     local SilentAim = LoadModule("SilentAim")(State, Services)
+    local MagicBullet = LoadModule("MagicBullet")(State, Services)
     
     local hooked = false
     function module.startHook()
@@ -110,7 +111,11 @@ return function(State, Services)
                 if NoSpread then NoSpread.process(gunModule) end
                 
                 local shouldRedirect, proxyCam = false, nil
-                if SilentAim then
+                if MagicBullet then
+                    shouldRedirect, proxyCam = MagicBullet.process(gunModule)
+                end
+                
+                if not shouldRedirect and SilentAim then
                     shouldRedirect, proxyCam = SilentAim.process(gunModule)
                 end
                 
