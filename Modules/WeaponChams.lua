@@ -17,7 +17,7 @@ return function(State, Services)
     if State.HandChamsOutlineR == nil then State.HandChamsOutlineR = 220; State.HandChamsOutlineG = 180; State.HandChamsOutlineB = 255 end
     if State.WeaponChamsDepth == nil then State.WeaponChamsDepth = false end
 
-    local activeHighlights = {}
+    local activeElements = {}
 
     local function isArmName(name)
         name = string.lower(name)
@@ -33,14 +33,12 @@ return function(State, Services)
         local camera = workspace.CurrentCamera
         if camera then
             for _, child in ipairs(camera:GetChildren()) do
-                -- Often viewmodels are Models or Folders in the camera
                 if child:IsA("Model") or child:IsA("Folder") or string.find(string.lower(child.Name), "viewmodel") or string.find(string.lower(child.Name), "vm") then
                     for _, desc in ipairs(child:GetDescendants()) do
                         if desc:IsA("BasePart") then
                             if isArmName(desc.Name) then
                                 table.insert(armParts, desc)
                             else
-                                -- Everything else in the viewmodel is likely the weapon
                                 table.insert(weaponParts, desc)
                             end
                         end
@@ -61,7 +59,6 @@ return function(State, Services)
                         end
                     end
                 elseif child:IsA("Model") and not isArmName(child.Name) then
-                    -- Sometimes games put the gun model directly in the character
                     if string.find(string.lower(child.Name), "gun") or string.find(string.lower(child.Name), "weapon") or child:FindFirstChild("Handle") then
                         for _, desc in ipairs(child:GetDescendants()) do
                             if desc:IsA("BasePart") then
@@ -76,24 +73,11 @@ return function(State, Services)
         return armParts, weaponParts
     end
 
-    local function applyModeToHighlight(highlight, mode, fillTrans, outlineTrans)
-        if mode == 1 then -- Normal
-            highlight.FillTransparency = fillTrans
-            highlight.OutlineTransparency = outlineTrans
-        elseif mode == 2 then -- Wireframe
-            highlight.FillTransparency = 1
-            highlight.OutlineTransparency = 0
-        elseif mode == 3 then -- Outline Only
-            highlight.FillTransparency = 0.95
-            highlight.OutlineTransparency = 0
-        end
-    end
-
     function module.cleanup()
-        for _, hl in pairs(activeHighlights) do
-            pcall(function() hl:Destroy() end)
+        for part, obj in pairs(activeElements) do
+            pcall(function() obj:Destroy() end)
         end
-        activeHighlights = {}
+        activeElements = {}
     end
 
     function module.update()
@@ -106,59 +90,84 @@ return function(State, Services)
         local armParts, weaponParts = getParts()
         local partsSeenThisFrame = {}
 
-        -- Process Weapon Parts
-        if State.WeaponChamsEnabled then
-            local fillColor = Color3.fromRGB(State.WeaponChamsFillR, State.WeaponChamsFillG, State.WeaponChamsFillB)
-            local outlineColor = Color3.fromRGB(State.WeaponChamsOutlineR, State.WeaponChamsOutlineG, State.WeaponChamsOutlineB)
+        local function stylePart(part, isArm)
+            partsSeenThisFrame[part] = true
             
-            for _, part in ipairs(weaponParts) do
-                partsSeenThisFrame[part] = true
-                
-                if not activeHighlights[part] or not activeHighlights[part].Parent then
-                    local hl = Instance.new("Highlight")
-                    hl.Name = "QuantixWeaponChams"
-                    hl.Adornee = part
-                    hl.Parent = part
-                    activeHighlights[part] = hl
+            local enabled = isArm and State.HandChamsEnabled or State.WeaponChamsEnabled
+            if not enabled then
+                if activeElements[part] then
+                    pcall(function() activeElements[part]:Destroy() end)
+                    activeElements[part] = nil
                 end
+                return
+            end
 
-                local hl = activeHighlights[part]
+            local fillColor = isArm and Color3.fromRGB(State.HandChamsFillR, State.HandChamsFillG, State.HandChamsFillB) or Color3.fromRGB(State.WeaponChamsFillR, State.WeaponChamsFillG, State.WeaponChamsFillB)
+            local outlineColor = isArm and Color3.fromRGB(State.HandChamsOutlineR, State.HandChamsOutlineG, State.HandChamsOutlineB) or Color3.fromRGB(State.WeaponChamsOutlineR, State.WeaponChamsOutlineG, State.WeaponChamsOutlineB)
+            local fillTrans = isArm and State.HandChamsFillTrans or State.WeaponChamsFillTrans
+            local outlineTrans = isArm and State.HandChamsOutlineTrans or State.WeaponChamsOutlineTrans
+            local depth = State.WeaponChamsDepth
+            local mode = State.WeaponChamsMode
+
+            local existing = activeElements[part]
+            
+            if mode == 2 then -- Wireframe
+                if existing and existing:IsA("Highlight") then
+                    pcall(function() existing:Destroy() end)
+                    existing = nil
+                end
+                
+                local wf = existing
+                if not wf or not wf.Parent then
+                    wf = Instance.new("WireframeHandleAdornment")
+                    wf.Name = "QuantixWireframe"
+                    wf.Parent = part
+                    activeElements[part] = wf
+                end
+                wf.Adornee = part
+                wf.Color3 = fillColor
+                wf.AlwaysOnTop = depth
+                wf.Transparency = fillTrans
+            else -- Normal or Outline
+                if existing and existing:IsA("WireframeHandleAdornment") then
+                    pcall(function() existing:Destroy() end)
+                    existing = nil
+                end
+                
+                local hl = existing
+                if not hl or not hl.Parent then
+                    hl = Instance.new("Highlight")
+                    hl.Name = "QuantixCham"
+                    hl.Parent = part
+                    activeElements[part] = hl
+                end
+                hl.Adornee = part
                 hl.FillColor = fillColor
                 hl.OutlineColor = outlineColor
-                hl.DepthMode = State.WeaponChamsDepth and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
-                applyModeToHighlight(hl, State.WeaponChamsMode, State.WeaponChamsFillTrans, State.WeaponChamsOutlineTrans)
+                hl.DepthMode = depth and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+                
+                if mode == 1 then -- Normal
+                    hl.FillTransparency = fillTrans
+                    hl.OutlineTransparency = outlineTrans
+                else -- Outline Only (mode == 3)
+                    hl.FillTransparency = 1
+                    hl.OutlineTransparency = outlineTrans
+                end
+                hl.Enabled = true
             end
         end
 
-        -- Process Arm Parts
-        if State.HandChamsEnabled then
-            local fillColor = Color3.fromRGB(State.HandChamsFillR, State.HandChamsFillG, State.HandChamsFillB)
-            local outlineColor = Color3.fromRGB(State.HandChamsOutlineR, State.HandChamsOutlineG, State.HandChamsOutlineB)
-            
-            for _, part in ipairs(armParts) do
-                partsSeenThisFrame[part] = true
-                
-                if not activeHighlights[part] or not activeHighlights[part].Parent then
-                    local hl = Instance.new("Highlight")
-                    hl.Name = "QuantixHandChams"
-                    hl.Adornee = part
-                    hl.Parent = part
-                    activeHighlights[part] = hl
-                end
-
-                local hl = activeHighlights[part]
-                hl.FillColor = fillColor
-                hl.OutlineColor = outlineColor
-                hl.DepthMode = State.WeaponChamsDepth and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
-                applyModeToHighlight(hl, State.WeaponChamsMode, State.HandChamsFillTrans, State.HandChamsOutlineTrans)
-            end
+        for _, part in ipairs(weaponParts) do
+            pcall(stylePart, part, false)
+        end
+        for _, part in ipairs(armParts) do
+            pcall(stylePart, part, true)
         end
 
-        -- Cleanup parts that no longer exist or are disabled
-        for part, hl in pairs(activeHighlights) do
+        for part, obj in pairs(activeElements) do
             if not partsSeenThisFrame[part] then
-                pcall(function() hl:Destroy() end)
-                activeHighlights[part] = nil
+                pcall(function() obj:Destroy() end)
+                activeElements[part] = nil
             end
         end
     end
