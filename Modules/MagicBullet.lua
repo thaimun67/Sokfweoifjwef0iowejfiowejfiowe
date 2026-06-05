@@ -20,9 +20,12 @@ return function(State, Services)
 
                 local activeCam = workspace.CurrentCamera
                 if activeCam then
-                    -- Teleport shot origin to be extremely close to the target's head, looking at the head
-                    -- This starts the raycast from right in front of the target, bypassing all walls
-                    local targetCFrame = CFrame.lookAt(targetPos + Vector3.new(0, 0.1, 0.5), targetPos)
+                    -- Position origin 1.5 studs behind the target relative to the camera view
+                    -- This ensures the ray starts outside the target's hitbox but behind any walls in front of them
+                    local dir = (targetPos - activeCam.CFrame.Position).Unit
+                    local origin = targetPos + (dir * 1.5)
+                    local targetCFrame = CFrame.lookAt(origin, targetPos)
+                    
                     local proxyCam = setmetatable({}, {
                         __index = function(t, k)
                             if k == "CFrame" then return targetCFrame end
