@@ -40,29 +40,38 @@ return function(State, Services)
             end
         end)
 
-        -- Intercept SoundId changes globally to catch ReactUI hitsound plays
-        pcall(function()
-            if hookmetamethod then
-                local oldNewIndex
-                oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, value)
-                    if key == "SoundId" and self:IsA("Sound") then
-                        -- Check if assigning a default game hit sound
-                        if value == "rbxassetid://7147954330" or value == "rbxassetid://1347140027" or value == originalSoundId then
-                            if State.Hitsound == "Click" then
-                                value = soundIds.Click
-                            elseif State.Hitsound == "Skeet" then
-                                value = soundIds.Skeet
-                            elseif State.Hitsound == "CS Headshot" then
-                                value = soundIds.CS_Headshot
+        -- Hook Sound.Play method directly to redirect the sound ID before playback
+        local success, err = pcall(function()
+            local dummy = Instance.new("Sound")
+            local oldPlay
+            oldPlay = hookfunction(dummy.Play, function(self, ...)
+                pcall(function()
+                    local id = self.SoundId
+                    if id == "rbxassetid://7147954330" or id == "rbxassetid://1347140027" or id == originalSoundId then
+                        if State.Hitsound == "Click" then
+                            self.SoundId = soundIds.Click
+                        elseif State.Hitsound == "Skeet" then
+                            self.SoundId = soundIds.Skeet
+                        elseif State.Hitsound == "CS Headshot" then
+                            self.SoundId = soundIds.CS_Headshot
+                        elseif State.Hitsound == "Default" and originalSoundId then
+                            if id == "rbxassetid://1347140027" then
+                                self.SoundId = "rbxassetid://1347140027"
+                            else
+                                self.SoundId = originalSoundId
                             end
                         end
                     end
-                    return oldNewIndex(self, key, value)
                 end)
-                getgenv()._oldHitmarkerNewIndex = oldNewIndex
-                print("[Quantix Hitsounds] Global SoundId hook installed successfully!")
-            end
+                return oldPlay(self, ...)
+            end)
+            getgenv()._oldSoundPlay = oldPlay
+            print("[Quantix Hitsounds] Sound.Play successfully hooked!")
         end)
+
+        if not success then
+            warn("[Quantix Hitsounds] hookfunction Sound.Play failed: " .. tostring(err))
+        end
     end
 
     function module.cleanup()
