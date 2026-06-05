@@ -14,6 +14,11 @@ return function(State, Services)
         end)
     end
 
+    local recoilHooked = false
+    local camRecoilHooked = false
+    local oldRecoilApply
+    local oldCamRecoilApply
+
     function module.scanRecoilInstances()
         if not getgc then return end
         local newRC, newCR = {}, {}
@@ -21,15 +26,33 @@ return function(State, Services)
             if type(val) == "table" then
                 if rawget(val, "gunRecoilSpring") and rawget(val, "rotationRecoilSpring") and rawget(val, "shotTwistSpring") then
                     table.insert(newRC, val)
+                    if not recoilHooked and hookfunction and type(val.applyKick) == "function" then
+                        pcall(function()
+                            oldRecoilApply = hookfunction(val.applyKick, function(self, ...)
+                                if State.NoRecoilEnabled then return end
+                                return oldRecoilApply(self, ...)
+                            end)
+                            recoilHooked = true
+                        end)
+                    end
                 elseif rawget(val, "spring") and rawget(val, "config") and rawget(val, "lastAppliedRecoil") then
                     table.insert(newCR, val)
+                    if not camRecoilHooked and hookfunction and type(val.applyKick) == "function" then
+                        pcall(function()
+                            oldCamRecoilApply = hookfunction(val.applyKick, function(self, ...)
+                                if State.NoRecoilEnabled then return end
+                                return oldCamRecoilApply(self, ...)
+                            end)
+                            camRecoilHooked = true
+                        end)
+                    end
                 end
             end
         end
         State.RecoilInstances = newRC
         State.CamRecoilInstances = newCR
         if #newRC + #newCR > 0 then
-            print("[Quantix] Recoil: found " .. #newRC .. " RecoilController(s), " .. #newCR .. " CameraRecoilController(s)")
+            -- print("[Quantix] Recoil: found " .. #newRC .. " RecoilController(s), " .. #newCR .. " CameraRecoilController(s)")
         end
     end
 
