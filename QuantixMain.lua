@@ -99,6 +99,13 @@ if State.BhopKeyMode == nil then State.BhopKeyMode = "Hold" end
 if State.ThemeAccentStart == nil then State.ThemeAccentStart = Color3.fromRGB(219, 29, 222) end
 if State.ThemeAccentEnd == nil then State.ThemeAccentEnd = Color3.fromRGB(150, 50, 255) end
 
+if State.OPKEnabled == nil then State.OPKEnabled = false end
+if State.OPKDistance == nil then State.OPKDistance = 6 end
+if State.HitboxExpanderEnabled == nil then State.HitboxExpanderEnabled = false end
+if State.HitboxSize == nil then State.HitboxSize = 10 end
+if State.HitboxTransparency == nil then State.HitboxTransparency = 0.5 end
+if State.HitboxTargetPart == nil then State.HitboxTargetPart = "Head" end
+
 if State.ESPEnabled == nil then State.ESPEnabled = false end
 if State.BoxESP == nil then State.BoxESP = false end
 if State.Box2DESP == nil then State.Box2DESP = false end
@@ -178,6 +185,9 @@ end
 
 -- Load modules
 local GameStateModule = LoadModule("GameState")(State, Services)
+getgenv().QuantixMainIsTeammate = function(entity)
+    return GameStateModule.isTeammate(entity)
+end
 local HookManagerModule = LoadModule("HookManager")(State, Services)
 local BulletTracesModule = LoadModule("BulletTraces")(State, Services)
 local CustomFOVModule = LoadModule("CustomFOV")(State, Services)
@@ -193,6 +203,8 @@ local WeaponChamsModule = LoadModule("WeaponChams")(State, Services)
 local SpeedBoostModule = LoadModule("SpeedBoost")(State, Services)
 local BhopModule = LoadModule("Bhop")(State, Services)
 local HitsoundsModule = LoadModule("Hitsounds")(State, Services)
+local OPKModule = LoadModule("OPK")(State, Services, GameStateModule)
+local HitboxExpanderModule = LoadModule("HitboxExpander")(State, Services, GameStateModule)
 
 -- Cleanup old ESP elements from previous runs
 print("[Quantix Loader] Cleaning up old ESP elements...")
@@ -248,6 +260,8 @@ table.insert(State.Connections, RunService.RenderStepped:Connect(function()
     pcall(function() WeaponChamsModule.update() end)
     pcall(function() SpeedBoostModule.update() end)
     pcall(function() BhopModule.update() end)
+    pcall(function() OPKModule.update() end)
+    pcall(function() HitboxExpanderModule.update() end)
 end))
 
 -- Setup Player added/removing handlers
@@ -372,6 +386,12 @@ RageGroup:CreateSlider({ Name = "boost speed value", Min = 30, Max = 80, Default
 RageGroup:CreateToggle({ Name = "bhop", Default = false, Callback = function(s) State.BhopEnabled = s end })
 RageGroup:CreateKeybind({ Name = "bhop keybind", Default = Enum.KeyCode.Space, Callback = function(k) State.BhopKey = k end })
 RageGroup:CreateDropdown({ Name = "bhop key mode", List = { "Hold", "Toggle" }, Default = State.BhopKeyMode, Callback = function(v) State.BhopKeyMode = v; State.BhopActive = false end })
+RageGroup:CreateToggle({ Name = "one position kill (opk)", Default = false, Callback = function(s) State.OPKEnabled = s end })
+RageGroup:CreateSlider({ Name = "opk distance", Min = 3, Max = 15, Default = 6, Callback = function(v) State.OPKDistance = v end })
+RageGroup:CreateToggle({ Name = "hitbox expander", Default = false, Callback = function(s) State.HitboxExpanderEnabled = s end })
+RageGroup:CreateSlider({ Name = "hitbox size", Min = 2, Max = 30, Default = 10, Callback = function(v) State.HitboxSize = v end })
+RageGroup:CreateSlider({ Name = "hitbox trans (%)", Min = 0, Max = 100, Default = 50, Callback = function(v) State.HitboxTransparency = v / 100 end })
+RageGroup:CreateDropdown({ Name = "hitbox target", List = { "Head", "Torso" }, Default = "Head", Callback = function(v) State.HitboxTargetPart = v end })
 
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
@@ -467,6 +487,10 @@ local function doUnload()
 
     -- Cleanup hitsounds
     pcall(HitsoundsModule.cleanup)
+
+    -- Cleanup OPK and Hitbox Expander
+    pcall(OPKModule.cleanup)
+    pcall(HitboxExpanderModule.cleanup)
 
     -- Cleanup HUD elements and references
     if WatermarkModule and WatermarkModule.toggle then pcall(function() WatermarkModule.toggle(false) end) end
