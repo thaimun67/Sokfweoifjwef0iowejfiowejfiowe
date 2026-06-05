@@ -187,6 +187,7 @@ local ESPModule = LoadModule("ESP")(State, Services, Theme, GameStateModule)
 local AimbotModule = LoadModule("Aimbot")(State, Services, GameStateModule)
 local WeaponChamsModule = LoadModule("WeaponChams")(State, Services)
 local SpeedBoostModule = LoadModule("SpeedBoost")(State, Services)
+local BhopModule = LoadModule("Bhop")(State, Services)
 
 -- Cleanup old ESP elements from previous runs
 print("[Quantix Loader] Cleaning up old ESP elements...")
@@ -230,6 +231,7 @@ table.insert(State.Connections, RunService.RenderStepped:Connect(function()
     pcall(function() ActiveFeaturesModule.update() end)
     pcall(function() WeaponChamsModule.update() end)
     pcall(function() SpeedBoostModule.update() end)
+    pcall(function() BhopModule.update() end)
 end))
 
 -- Setup Player added/removing handlers
@@ -342,6 +344,8 @@ RageGroup:CreateToggle({ Name = "no spread", Default = false, Callback = functio
 RageGroup:CreateToggle({ Name = "infinite ammo", Default = false, Callback = function(s) State.InfiniteAmmoEnabled = s end })
 RageGroup:CreateToggle({ Name = "speed boost (bypass)", Default = false, Callback = function(s) State.SpeedBoostEnabled = s end })
 RageGroup:CreateSlider({ Name = "boost speed value", Min = 30, Max = 80, Default = 35, Callback = function(v) State.SpeedBoostValue = v end })
+RageGroup:CreateToggle({ Name = "bhop", Default = false, Callback = function(s) State.BhopEnabled = s end })
+RageGroup:CreateKeybind({ Name = "bhop keybind", Default = Enum.KeyCode.Space, Callback = function(k) State.BhopKey = k end })
 
 local SilentAimGroup = RageTab:CreateGroupbox("silent aim")
 SilentAimGroup:CreateToggle({ Name = "enabled", Default = false, Callback = function(s) State.SilentAimEnabled = s end })
