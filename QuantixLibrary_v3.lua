@@ -775,6 +775,137 @@ function Library:CreateWindow(options)
                 end)
             end
 
+            function Group:CreateDropdown(options)
+                local DropdownFrame = Instance.new("Frame")
+                DropdownFrame.Size = UDim2.new(1, 0, 0, 35)
+                DropdownFrame.BackgroundTransparency = 1
+                DropdownFrame.Parent = GroupContainer
+
+                local DropdownLabel = Instance.new("TextLabel")
+                DropdownLabel.Size = UDim2.new(1, 0, 0, 15)
+                DropdownLabel.BackgroundTransparency = 1
+                DropdownLabel.Text = options.Name
+                DropdownLabel.TextColor3 = Theme.TextDark
+                DropdownLabel.Font = Theme.Font
+                DropdownLabel.TextSize = Theme.TextSize
+                DropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+                DropdownLabel.Parent = DropdownFrame
+
+                local SelectorButton = Instance.new("TextButton")
+                SelectorButton.Size = UDim2.new(1, -4, 0, 18)
+                SelectorButton.Position = UDim2.new(0, 2, 0, 17)
+                SelectorButton.BackgroundColor3 = Theme.ElementBackground
+                SelectorButton.BorderColor3 = Theme.LightOutline
+                SelectorButton.Text = "  " .. (options.Default or options.List[1] or "Select...")
+                SelectorButton.TextColor3 = Theme.Text
+                SelectorButton.Font = Theme.Font
+                SelectorButton.TextSize = Theme.TextSize
+                SelectorButton.TextXAlignment = Enum.TextXAlignment.Left
+                SelectorButton.Parent = DropdownFrame
+
+                local ArrowLabel = Instance.new("TextLabel")
+                ArrowLabel.Size = UDim2.new(0, 15, 1, 0)
+                ArrowLabel.Position = UDim2.new(1, -18, 0, 0)
+                ArrowLabel.BackgroundTransparency = 1
+                ArrowLabel.Text = "▼"
+                ArrowLabel.TextColor3 = Theme.TextDark
+                ArrowLabel.Font = Theme.Font
+                ArrowLabel.TextSize = 10
+                ArrowLabel.TextXAlignment = Enum.TextXAlignment.Right
+                ArrowLabel.Parent = SelectorButton
+
+                local Drawer = Instance.new("ScrollingFrame")
+                Drawer.Size = UDim2.new(1, -4, 0, 0)
+                Drawer.Position = UDim2.new(0, 2, 0, 36)
+                Drawer.BackgroundColor3 = Theme.Background
+                Drawer.BorderColor3 = Theme.DarkOutline
+                Drawer.ScrollBarThickness = 2
+                Drawer.ScrollBarImageColor3 = Theme.AccentStart
+                Drawer.ZIndex = 15
+                Drawer.Visible = false
+                Drawer.Parent = DropdownFrame
+
+                local DrawerLayout = Instance.new("UIListLayout")
+                DrawerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                DrawerLayout.Parent = Drawer
+
+                local toggled = false
+                local currentSelection = options.Default or options.List[1] or ""
+
+                local function selectOption(val)
+                    currentSelection = val
+                    SelectorButton.Text = "  " .. val
+                    if options.Callback then options.Callback(val) end
+                    
+                    toggled = false
+                    tween(Drawer, 0.15, { Size = UDim2.new(1, -4, 0, 0) })
+                    tween(DropdownFrame, 0.15, { Size = UDim2.new(1, 0, 0, 35) })
+                    task.delay(0.15, function()
+                        if not toggled then Drawer.Visible = false end
+                    end)
+                end
+
+                for i, item in ipairs(options.List) do
+                    local ItemBtn = Instance.new("TextButton")
+                    ItemBtn.Size = UDim2.new(1, 0, 0, 18)
+                    ItemBtn.BackgroundColor3 = Theme.ElementBackground
+                    ItemBtn.BorderSizePixel = 0
+                    ItemBtn.Text = "  " .. item
+                    ItemBtn.TextColor3 = Theme.TextDark
+                    ItemBtn.Font = Theme.Font
+                    ItemBtn.TextSize = Theme.TextSize
+                    ItemBtn.TextXAlignment = Enum.TextXAlignment.Left
+                    ItemBtn.LayoutOrder = i
+                    ItemBtn.ZIndex = 16
+                    ItemBtn.Parent = Drawer
+
+                    ItemBtn.MouseEnter:Connect(function()
+                        tween(ItemBtn, 0.15, { BackgroundColor3 = Theme.DarkOutline, TextColor3 = Theme.AccentEnd })
+                    end)
+                    ItemBtn.MouseLeave:Connect(function()
+                        tween(ItemBtn, 0.15, { BackgroundColor3 = Theme.ElementBackground, TextColor3 = Theme.TextDark })
+                    end)
+                    ItemBtn.MouseButton1Click:Connect(function()
+                        selectOption(item)
+                    end)
+                end
+
+                local function Toggle(state)
+                    if state == toggled then return end
+                    toggled = state
+                    
+                    local maxItemsVisible = math.min(6, #options.List)
+                    local targetDrawerHeight = toggled and (maxItemsVisible * 18 + 2) or 0
+                    local targetFrameHeight = toggled and (35 + targetDrawerHeight + 5) or 35
+                    
+                    if toggled then
+                        Drawer.Size = UDim2.new(1, -4, 0, 0)
+                        Drawer.CanvasSize = UDim2.new(0, 0, 0, #options.List * 18)
+                        Drawer.Visible = true
+                    end
+                    
+                    tween(Drawer, 0.15, { Size = UDim2.new(1, -4, 0, targetDrawerHeight) })
+                    tween(DropdownFrame, 0.15, { Size = UDim2.new(1, 0, 0, targetFrameHeight) })
+
+                    if not toggled then
+                        task.delay(0.15, function()
+                            if not toggled then Drawer.Visible = false end
+                        end)
+                    end
+                end
+
+                SelectorButton.MouseEnter:Connect(function()
+                    tween(SelectorButton, 0.15, { BorderColor3 = Theme.AccentStart })
+                end)
+                SelectorButton.MouseLeave:Connect(function()
+                    tween(SelectorButton, 0.15, { BorderColor3 = Theme.LightOutline })
+                end)
+
+                SelectorButton.MouseButton1Click:Connect(function()
+                    Toggle(not toggled)
+                end)
+            end
+
             return Group
         end
         
