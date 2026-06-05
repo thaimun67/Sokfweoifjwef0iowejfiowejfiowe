@@ -329,12 +329,27 @@ return function(State, Services, GameStateModule)
 
                             local activeCam = workspace.CurrentCamera
                             if activeCam then
-                                local oldCF = activeCam.CFrame
-                                activeCam.CFrame = CFrame.lookAt(oldCF.Position, targetPos)
+                                local targetCFrame = CFrame.lookAt(activeCam.CFrame.Position, targetPos)
+                                
+                                local proxyCam = setmetatable({}, {
+                                    __index = function(t, k)
+                                        if k == "CFrame" then
+                                            return targetCFrame
+                                        end
+                                        local val = activeCam[k]
+                                        if type(val) == "function" then
+                                            return function(_, ...) return val(activeCam, ...) end
+                                        end
+                                        return val
+                                    end
+                                })
+
+                                local oldCam = self.camera
+                                self.camera = proxyCam
                                 
                                 local result = originalFireHitscanShot(self, unpack(args))
                                 
-                                activeCam.CFrame = oldCF
+                                self.camera = oldCam
                                 return result
                             end
                         else
