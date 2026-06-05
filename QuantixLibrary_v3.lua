@@ -519,7 +519,7 @@ function Library:CreateWindow(options)
         ContentLayout.Parent = TabContent
 
         local LeftSide = Instance.new("Frame")
-        LeftSide.Size = UDim2.new(0.5, -6, 1, 0)
+        LeftSide.Size = UDim2.new(0.5, -6, 0, 0)
         LeftSide.BackgroundTransparency = 1
         LeftSide.Parent = TabContent
         local LeftLayout = Instance.new("UIListLayout")
@@ -527,12 +527,24 @@ function Library:CreateWindow(options)
         LeftLayout.Parent = LeftSide
 
         local RightSide = Instance.new("Frame")
-        RightSide.Size = UDim2.new(0.5, -6, 1, 0)
+        RightSide.Size = UDim2.new(0.5, -6, 0, 0)
         RightSide.BackgroundTransparency = 1
         RightSide.Parent = TabContent
         local RightLayout = Instance.new("UIListLayout")
         RightLayout.Padding = UDim.new(0, 10)
         RightLayout.Parent = RightSide
+
+        local function updateCanvasSize()
+            local leftH = LeftLayout.AbsoluteContentSize.Y
+            local rightH = RightLayout.AbsoluteContentSize.Y
+            local maxH = math.max(leftH, rightH)
+            
+            LeftSide.Size = UDim2.new(0.5, -6, 0, leftH)
+            RightSide.Size = UDim2.new(0.5, -6, 0, rightH)
+            TabContent.CanvasSize = UDim2.new(0, 0, 0, maxH + 20)
+        end
+        LeftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
+        RightLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
 
         local function updateTabButtonVisuals(active)
             if active then
