@@ -4,8 +4,9 @@ QuantixMain.lua
 QuantixMain_live.lua
 QuantixMain_refactored.lua
 QuantixMain_v6.lua
-QuantixLibrary_v3.lua
 bundle.py
 Loader.lua
 Quantix_Bundled_Release.lua
 Loader_Redstone.lua
+hercules-obfuscator/
+QuantixLibrary_v3_raw.lua
